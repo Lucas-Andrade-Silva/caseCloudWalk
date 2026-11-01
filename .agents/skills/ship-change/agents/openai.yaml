@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ship Change"
+  short_description: "Commit, push, and open a verified PR"
+  default_prompt: "Use $ship-change to verify and publish the current change as a focused pull request."
