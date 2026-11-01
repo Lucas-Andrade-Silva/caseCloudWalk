@@ -38,7 +38,7 @@ definição do problema de produto.
 - Necessidade real de agentes, RAG, modelos, evals e interface.
 - Checks técnicos que substituirão o gate genérico quando a stack for definida.
 
-## Bloqueio operacional conhecido
+## Estado do repositório remoto
 
-O GitHub remoto era vazio. Um commit local vazio inicializa `main`, mas o primeiro push direto
-à branch padrão exige autorização excepcional; depois disso, todo conteúdo seguirá por PR.
+A `main` remota contém somente o commit vazio de bootstrap `079733e`. A fundação está publicada
+em `chore/project-foundation` e só poderá entrar na `main` por pull request após revisão.
