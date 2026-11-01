@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Pull Request"
+  short_description: "Independent PR review and release verdict"
+  default_prompt: "Use $review-pr to independently assess this pull request and issue a merge-readiness verdict."
