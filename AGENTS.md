@@ -1,14 +1,22 @@
 # CloudWalk project instructions
 
-This repository is developed by one person with Codex acting as an engineering partner.
-The product scope is intentionally undefined until the TAPI is recorded. Do not infer the
-solution, stack, architecture, or CloudWalk requirements from the reference projects.
+This repository is developed by one person with an AI engineering partner. The product is the
+AI-first, multi-brand help desk described in `docs/TAPI_cloudwalk.pdf`. Scope, stack, and
+architecture are decided in `docs/decisions/0002-arquitetura-stack-e-escopo.md` and operationalized in
+`docs/PLAYBOOK.md`. Do not infer them from the reference projects.
 
 ## Start every task here
 
 1. Read `docs/context/STATE.md` for the current snapshot.
-2. Read only the product, decision, and code files needed for the request.
-3. Inspect the current branch, worktree, and relevant tests before writing.
+2. Read section 0 of `docs/PLAYBOOK.md` (non-negotiable rules and decision summary), then the other
+   playbook sections the task needs.
+3. Read only the decision and code files needed for the request.
+4. Inspect the current branch, worktree, and relevant tests before writing.
+
+Two rules from the playbook apply to every task: **TDD is mandatory** (a failing test before any
+production code, and never weaken or skip a test to make it pass), and **any decision not already
+recorded, or that contradicts a recorded one, goes to the project owner first** with options and a
+recommendation.
 
 Do not preload historical context. `docs/context/REFERENCE_AUDIT.md` is background material,
 not required reading for ordinary tasks.
@@ -17,8 +25,9 @@ not required reading for ordinary tasks.
 
 - `AGENTS.md`: durable engineering rules.
 - `docs/context/STATE.md`: short, mutable handoff between chats.
-- `docs/decisions/`: accepted architectural and process decisions.
-- Product goals and plans: to be created from the TAPI; do not invent them beforehand.
+- `docs/decisions/`: accepted architectural and process decisions (rationale lives here).
+- `docs/PLAYBOOK.md`: how to work on this product (rules, architecture contracts, plan, protocols).
+- `docs/TAPI_cloudwalk.pdf`: the partner brief and evaluation criteria.
 - Code, tests, and observed command output outrank stale prose.
 
 When sources conflict, stop and surface the conflict. Never silently rewrite an accepted
