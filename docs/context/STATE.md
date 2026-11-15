@@ -24,15 +24,14 @@ Próxima fase: construção em TDD, com **entrega até 2026-11-27** (13 dias con
 
 ## Estado do repositório
 
-- Branch `docs/project-playbook`, criada a partir de `chore/project-foundation`, com um commit local de
-  docs: ADR 0002, `PLAYBOOK.md`, `AGENTS.md`, este arquivo, o PDF do TAPI e `docs/research/`.
-  Ainda não foi publicada (sem push) nem tem PR.
-- A fundação (`chore/project-foundation`) ainda não entrou na `main`; o PR de docs depende dela.
+- Branch `docs/project-playbook` (a partir da `main` já com a fundação, PR #1 mesclado), publicada no
+  remoto, com um commit de docs: ADR 0002, `PLAYBOOK.md`, `AGENTS.md`, este arquivo, o PDF do TAPI e
+  `docs/research/`. PR contra `main` aguardando revisão independente em outro chat.
 
 ## Próximos passos
 
 1. Dono revisa o playbook e o ADR, e responde as pendências abaixo.
-2. Push e PR dos docs (com revisão independente em outro chat).
+2. Revisão independente do PR dos docs (`$review-pr` em outro chat) e merge.
 3. Fundação técnica: Docker Compose (Postgres, Redis, Kafka, Rails) e teste do Karafka com o outbox.
 4. Fatia ponta a ponta em TDD, depois seguir o plano do playbook (§10).
 
