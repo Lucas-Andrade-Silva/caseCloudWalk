@@ -10,6 +10,9 @@ Rails.application.routes.draw do
       resources :replies, only: :create
     end
 
+    # Quem está usando a interface.
+    get "me", to: "me#show"
+
     # Analista humano.
     post "work/next", to: "work#next"
     resources :tickets, only: :show do

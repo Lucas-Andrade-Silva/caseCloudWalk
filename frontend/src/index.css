@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Tema escuro único e denso (ADR 0007, I1). As cores são tokens: trocar o tema é trocar estes valores. */
+@theme {
+  --color-bg: #0b0c0e;
+  --color-surface: #111215;
+  --color-elevated: #191a1f;
+  --color-line: #24262c;
+  --color-text: #e7e8ea;
+  --color-muted: #8b9099;
+  --color-faint: #5b6068;
+  --color-accent: #6b74f0;
+  --color-danger: #f0626b;
+  --color-warning: #e8b04a;
+  --color-success: #3fbf7f;
+  --color-brand-infinitepay: #3fd37c;
+  --color-brand-jim: #f2a93b;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
