@@ -44,6 +44,21 @@ RSpec.describe Outbox::WebhookPublisher do
     expect { publisher.produce_sync(message) }.to raise_error(Outbox::WebhookPublisher::DeliveryError, /503/)
   end
 
+  it "separa a recusa definitiva da falha temporária" do
+    [ 400, 404, 413, 422 ].each do |code|
+      status[0] = code
+      expect { publisher.produce_sync(message) }.to raise_error(Outbox::WebhookPublisher::Rejected, /#{code}/)
+    end
+
+    [ 401, 403, 408, 429, 500, 503 ].each do |code|
+      status[0] = code
+      expect { publisher.produce_sync(message) }.to raise_error { |error|
+        expect(error).to be_a(Outbox::WebhookPublisher::DeliveryError)
+        expect(error).not_to be_a(Outbox::WebhookPublisher::Rejected)
+      }
+    end
+  end
+
   it "deixa o evento pendente no outbox quando a entrega falha" do
     status[0] = 500
     event = OutboxEvent.create!(topic: "helpdesk.messages", key: "ticket-1", payload: { "seq" => 1 })

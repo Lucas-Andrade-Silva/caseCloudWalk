@@ -16,12 +16,21 @@ module MockAgent
     def replies_topic = ENV.fetch("REPLIES_TOPIC", "agent.replies")
     # Fração das mensagens que o mock escala para humano (ADR 0002, D6: 30% e 60% no experimento).
     def escalation_rate = Float(ENV.fetch("MOCK_ESCALATION_RATE", "0.3"))
+    # Modo caos (spec 05). Vazio: agente bem-comportado.
+    def chaos = @chaos ||= Chaos.parse(ENV.fetch("MOCK_CHAOS", ""))
   end
 
   def self.logger
     @logger ||= Logger.new($stdout, progname: "mock-agent").tap { $stdout.sync = true }
   end
+
+  # Um agendador por processo, compartilhado pelos consumidores de todas as partições.
+  def self.delayed_publisher
+    @delayed_publisher ||= DelayedPublisher.new { |message| Karafka.producer.produce_sync(message) }
+  end
 end
 
+require "mock_agent/chaos"
+require "mock_agent/delayed_publisher"
 require "mock_agent/responder"
 require "mock_agent/messages_consumer"

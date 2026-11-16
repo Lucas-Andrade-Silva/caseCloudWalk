@@ -184,6 +184,8 @@ services:
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       MOCK_ESCALATION_RATE: ${MOCK_ESCALATION_RATE:-0.3}
+      # Modo caos (spec 05), ex.: latency_ms=200..2000,duplicate=0.1,silence=0.05. Vazio: sem caos.
+      MOCK_CHAOS: ${MOCK_CHAOS:-}
     command: ["bundle", "exec", "karafka", "server"]
     restart: unless-stopped
     depends_on:

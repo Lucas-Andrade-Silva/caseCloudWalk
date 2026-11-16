@@ -4,10 +4,10 @@ Atualizado em: 2026-11-16
 
 ## Fase atual
 
-Construção em andamento. Fatias 01 (fundação), 02 (integração com o agente) e 03 (handoff) commitadas
-localmente. **Fatia 04 (equipes, filas e regras configuráveis, sem telas) implementada e verde, ainda sem
-commit.** Entrega até **2026-11-27**. Próxima: resiliência (retry topics, DLQ, modo caos do mock e verificador
-de invariantes), conforme o playbook §10.
+Construção em andamento. Fatias 01 a 04 (fundação, integração com o agente, handoff, regras e filas)
+commitadas localmente. **Fatia 05 (resiliência e verificação) implementada e verde, ainda sem commit.**
+Entrega até **2026-11-27**. Backend funcional completo sem LLM e sem telas. Próximo: decidir a ordem entre
+LLM, interface (painel, editor de filas, mapa vivo) e experimento oficial (playbook §10).
 
 ## Onde está cada coisa
 
@@ -15,17 +15,23 @@ de invariantes), conforme o playbook §10.
 - Decisões: `docs/decisions/0002` (arquitetura e escopo), `0003` (integração com o agente, ticket único,
   resposta atrasada), `0004` (escalação, P1–P4, atribuição, `sidekiq-cron`, agente mudo: limite de 30 s e
   meta de ≤ 40 s) e `0005` (equipes, regras em dois momentos, fatos, versões, auditoria).
-- Especificações de fatia: `docs/specs/01` a `04`.
+- Especificações de fatia: `docs/specs/01` a `05`.
 - Brief do parceiro: `docs/TAPI_cloudwalk.pdf`. Pesquisa de origem: `docs/research/`.
 
 ## Comandos oficiais
 
 - Subir tudo: `docker compose up -d --build` (se só o código mudou, `docker compose up -d --force-recreate
   api` aplica migrações; reinicie `relay`, `sidekiq` e consumidores, que são processos longos).
-- **Gates** (resultado em 2026-11-16): `docker compose run --rm test` (plataforma, 135 exemplos),
-  `docker compose run --rm broker-test` (14) e `docker compose run --rm mock-agent-test` (12). Zero falhas.
+- **Gates** (resultado em 2026-11-16): `docker compose run --rm test` (plataforma, 154 exemplos),
+  `docker compose run --rm broker-test` (21) e `docker compose run --rm mock-agent-test` (20). Zero falhas.
 - **Fumaça com a pilha no ar** (`docker compose exec api bundle exec rails <tarefa>`): `smoke:round_trip`,
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
+- **Rajada e invariantes:** `load:burst[n,taxa,reentrega,seed]` grava `tmp/ledgers/<run>.jsonl`;
+  `invariants:check[ledger,espera_s]` espera esvaziar e confere (código 1 se violar).
+- **Caos no mock:** `MOCK_CHAOS="latency_ms=200..2000,duplicate=0.1,silence=0.05,..." docker compose up -d
+  --force-recreate mock-agent`.
+- **Falhas:** `outbox:dead`, `outbox:retry_dead[id]`, `outbox:discard_dead[id]` (plataforma) e
+  `docker compose exec broker bin/dlq list|replay|purge` (respostas do agente).
 - Um arquivo só: `docker compose run --rm test bundle exec rspec caminho/do_spec.rb`
 - Lint da plataforma: `docker compose run --rm test bundle exec rubocop`
 - Gate do frontend: ainda não existe (não há frontend).
@@ -47,15 +53,18 @@ Caminho de uma mensagem (ADR 0003):
     dry-run. Toda decisão vai para `decisions` (versão, regra, fatos sem o texto, resultado).
   - Tabelas: marcas, usuários, equipes e membros, filas, níveis de prioridade, clientes, tickets, mensagens,
     entrada de webhooks, linha do tempo, decisões, conjuntos de regras, outbox, eventos processados.
-- `broker/` (Ruby puro, sem banco): webhook → Kafka e Kafka → API. Dono dos tópicos da borda do agente.
+  - Resiliência: evento recusado de vez pelo broker fica estacionado e retém só o seu ticket; banco fora
+    do ar responde 503; `Invariants::Checker` confere os quatro invariantes de um ledger.
+- `broker/` (Ruby puro, sem banco): webhook → Kafka e Kafka → API, com `agent.replies.retry-1` (10 s),
+  `retry-2` (60 s) e `dlq`. Plataforma fora (rede, 401/403/429/5xx de indisponibilidade) pausa sem gastar
+  tentativa. Dono dos tópicos da borda do agente.
 - `mock_agent/` (Ruby puro): responde ou escala (30%, `MOCK_ESCALATION_RATE`), determinístico pelo
-  `event_id`; `[escalar]` e `[responder]` no texto forçam a decisão.
+  `event_id`; `[escalar]` e `[responder]` forçam a decisão; modo caos por `MOCK_CHAOS`.
 - Seeds de desenvolvimento: equipes Atendimento InfinitePay, Atendimento JIM, Crédito e Dispositivo; filas
   padrão, de crédito e de maquininha; regras v1 publicadas nas duas marcas; analistas Ana, Bruno e Carla
   (`dev-analyst-<nome>`) e operação Olivia (`dev-ops-olivia`). Seeds não sobrescrevem o que já existe.
-- Ainda **não** existem: gatilhos por fatos de LLM (cliente pediu humano, frustração), modo caos do mock,
-  retry topics e DLQ, verificador de invariantes, envio da resposta ao canal, ActionCable, frontend, RLS,
-  LLM, observabilidade.
+- Ainda **não** existem: LLM (enriquecimento, brief, memória, regras em linguagem natural), gatilhos por
+  fatos de LLM, envio da resposta ao canal, ActionCable, frontend, RLS, k6 e observabilidade.
 
 ## Verdades vigentes
 
@@ -69,15 +78,14 @@ Caminho de uma mensagem (ADR 0003):
 ## Estado do repositório
 
 - Branches empilhadas: `docs/project-playbook` → `chore/platform-foundation` → `feat/agent-integration` →
-  `feat/handoff-escalation` → `feat/rules-and-queues` (esta com a fatia 04 **sem commit**).
+  `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` (esta com a fatia 05 **sem commit**).
 - Só `docs/project-playbook` está no remoto. Nenhum PR aberto (a CLI `gh` não está autenticada).
 
 ## Próximos passos
 
-1. Commit da fatia 04.
-2. PRs das cinco branches, com revisão independente em outro chat.
-3. Fatia 05: resiliência e verificação (retry topics e DLQ no broker, modo caos do mock, verificador de
-   invariantes), base do experimento.
+1. Commit da fatia 05.
+2. PRs das seis branches, com revisão independente em outro chat.
+3. Dono decide a ordem do que falta: LLM, interface e experimento oficial (k6 em modo de produção).
 
 ## Pendências do dono
 
@@ -94,7 +102,8 @@ Caminho de uma mensagem (ADR 0003):
 - **Latência em desenvolvimento não vale como medida** (~0,45 s por chamada fora do controller, recarga de
   código sobre o disco do Windows). O experimento precisa rodar em modo de produção.
 - O relay entrega um webhook por vez (mantém a ordem, limita a vazão). Medir no piloto de carga.
-- Poison message ainda trava a partição do consumidor de respostas: falta retry topics e DLQ.
+- Uma queda de 20 s do Postgres fez o vigia escalar tickets cujas respostas atrasaram além de 30 s. É o
+  comportamento decidido, mas aumenta a fila humana depois de uma queda; medir no experimento.
 - As respostas do bot e do analista são gravadas, mas ainda não chegam ao canal nem a uma tela.
 - Ninguém é avisado quando o prazo de SLA humano estoura; só fica registrado na primeira resposta.
 - A extração de valor por expressão regular é limitada (não entende "cinco mil reais").

@@ -17,15 +17,20 @@ class KarafkaApp < Karafka::App
     Karafka.monitor.subscribe(Karafka::Instrumentation::LoggerListener.new(log_polling: false))
   end
 
+  # O tópico principal e os dois estágios de retry usam o mesmo consumidor. A DLQ não tem consumidor
+  # automático: é tratada pela rotina bin/dlq.
   routes.draw do
-    topic Broker::Config.replies_topic do
-      consumer Broker::RepliesConsumer
+    Broker::ReplyPipeline.stages.each_key do |name|
+      topic name do
+        consumer Broker::RepliesConsumer
+      end
     end
   end
 
   # O broker é o dono dos tópicos da borda do agente. `karafka topics migrate` os cria na subida.
   declaratives.draw do
-    [ Broker::Config.messages_topic, Broker::Config.replies_topic ].each do |name|
+    replies = Broker::Config.replies_topic
+    [ Broker::Config.messages_topic, replies, "#{replies}.retry-1", "#{replies}.retry-2", "#{replies}.dlq" ].each do |name|
       topic name do
         partitions Broker::Config.partitions
         replication_factor 1

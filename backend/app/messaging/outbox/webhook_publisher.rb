@@ -4,9 +4,14 @@ module Outbox
   # Entrega um evento do outbox ao broker como webhook assinado (ADR 0003, E1).
   #
   # Tem a mesma interface de produtor que o Relay espera (#produce_sync). Qualquer resposta
-  # diferente de 2xx vira erro: o evento continua pendente e o relay tenta de novo com backoff.
+  # diferente de 2xx vira erro:
+  # - Rejected: o broker recusou de vez (corpo ou tópico inválido). Repetir não adianta.
+  # - DeliveryError: falha temporária (broker fora, 5xx, credencial, limite). O relay tenta de novo.
   class WebhookPublisher
     class DeliveryError < StandardError; end
+    class Rejected < DeliveryError; end
+
+    REJECTED_STATUSES = [ 400, 404, 413, 422 ].freeze
 
     OPEN_TIMEOUT = 2
     READ_TIMEOUT = 10
@@ -31,7 +36,8 @@ module Outbox
       status = @transport.call(@uri, signed_headers(event_id, body), body)
       return if (200..299).cover?(status)
 
-      raise DeliveryError, "broker respondeu #{status} para o evento #{event_id}"
+      error = REJECTED_STATUSES.include?(status) ? Rejected : DeliveryError
+      raise error, "broker respondeu #{status} para o evento #{event_id}"
     end
 
     private

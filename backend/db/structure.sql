@@ -190,7 +190,11 @@ CREATE TABLE public.outbox_events (
     payload jsonb NOT NULL,
     headers jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    published_at timestamp with time zone
+    published_at timestamp with time zone,
+    attempts integer DEFAULT 0 NOT NULL,
+    last_error text,
+    dead_at timestamp with time zone,
+    discarded_at timestamp with time zone
 );
 
 
@@ -857,6 +861,7 @@ ALTER TABLE ONLY public.inbound_events
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261116000006'),
 ('20261115000005'),
 ('20261115000004'),
 ('20261115000003'),

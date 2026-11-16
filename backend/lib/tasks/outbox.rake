@@ -11,4 +11,30 @@ namespace :outbox do
     process.run
     Rails.logger.info("[outbox relay] encerrado")
   end
+
+  desc "Lista os eventos estacionados (recusados de vez pelo broker)"
+  task dead: :environment do
+    Rails.logger.level = Logger::WARN
+    events = OutboxEvent.dead
+    puts "#{events.size} evento(s) estacionado(s)"
+    events.each do |event|
+      held = OutboxEvent.where(key: event.key, published_at: nil, dead_at: nil, discarded_at: nil).count
+      puts "  ##{event.id} #{event.topic} chave #{event.key}, #{event.attempts} tentativa(s), " \
+           "#{held} retido(s) atrás dele: #{event.last_error}"
+    end
+  end
+
+  desc "Volta um evento estacionado para a fila"
+  task :retry_dead, [ :id ] => :environment do |_task, args|
+    Rails.logger.level = Logger::WARN
+    OutboxEvent.dead.find(args.fetch(:id)).retry!
+    puts "evento #{args[:id]} de volta à fila"
+  end
+
+  desc "Descarta um evento estacionado e libera os eventos retidos do mesmo ticket"
+  task :discard_dead, [ :id ] => :environment do |_task, args|
+    Rails.logger.level = Logger::WARN
+    OutboxEvent.dead.find(args.fetch(:id)).discard!
+    puts "evento #{args[:id]} descartado"
+  end
 end
