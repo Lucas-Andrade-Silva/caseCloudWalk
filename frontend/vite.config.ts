@@ -1,0 +1,24 @@
+/// <reference types="vitest/config" />
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
+
+// O Vite repassa a API e os webhooks para o Rails: o navegador fala com uma origem só, sem CORS.
+const apiTarget = process.env.API_PROXY_TARGET ?? "http://localhost:3000";
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  server: {
+    port: 5173,
+    proxy: {
+      "/api": { target: apiTarget, changeOrigin: true },
+      "/webhooks": { target: apiTarget, changeOrigin: true },
+    },
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
+    css: false,
+  },
+});

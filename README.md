@@ -7,7 +7,8 @@ webhook, broker e Kafka, e escala para analistas humanos com resumo e contexto. 
 O projeto está **em construção**. Hoje, sem telas: uma mensagem entra por um webhook de canal, vira ticket,
 chega ao agente simulado e a resposta volta ao ticket; o agente pode escalar, a plataforma escala sozinha se
 ele ficar em silêncio, e um analista puxa o ticket mais urgente da fila. A operação configura equipes, filas
-e regras versionadas (com dry-run) por API. Painel e interface ainda não existem.
+e regras versionadas (com dry-run) por API. A memória do cliente acompanha cada atendimento. A interface
+está começando: hoje há a entrada e a navegação por papel; as telas vêm em seguida.
 
 ```
 canal -> api (Postgres + outbox) -> relay -> webhook assinado -> broker -> Kafka -> agente simulado
@@ -23,8 +24,10 @@ docker compose up -d --build
 ```
 
 Sobe Postgres, Redis, Kafka (KRaft, um nó), a API Rails, o relay do outbox, o broker e o agente simulado.
-A API responde em `http://localhost:3000/up`. Para trocar a porta, os segredos ou as credenciais locais,
-copie `.env.example` para `.env`.
+A API responde em `http://localhost:3000/up` e a interface em `http://127.0.0.1:5173` (em desenvolvimento,
+a tela de entrada oferece as pessoas de teste). Prefira `127.0.0.1` a `localhost`: se outro programa da
+máquina ocupar a mesma porta em IPv6, `localhost` cai nele. Para trocar portas, segredos ou credenciais
+locais, copie `.env.example` para `.env`.
 
 Para ver os caminhos principais funcionando, com a pilha no ar:
 
@@ -54,6 +57,10 @@ docker compose run --rm test
 
 ```bash
 docker compose run --rm broker-test
+```
+
+```bash
+docker compose run --rm web-test
 ```
 
 ```bash

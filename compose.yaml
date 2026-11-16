@@ -9,6 +9,7 @@
 #   docker compose run --rm test
 #   docker compose run --rm broker-test
 #   docker compose run --rm mock-agent-test
+#   docker compose run --rm web-test
 name: helpdesk
 
 x-backend: &backend
@@ -53,6 +54,14 @@ x-mock-agent: &mock-agent
   volumes:
     - ./mock_agent:/app
     - mock-agent-bundle:/usr/local/bundle
+
+x-web: &web
+  build:
+    context: ./frontend
+  image: helpdesk-web
+  volumes:
+    - ./frontend:/app
+    - web-node-modules:/app/node_modules
 
 services:
   postgres:
@@ -192,6 +201,17 @@ services:
       broker:
         condition: service_healthy
 
+  # Interface (React + Vite). Repassa /api e /webhooks para a API: o navegador fala só com http://localhost:5173.
+  web:
+    <<: *web
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+
   test:
     <<: *backend
     profiles: ["test"]
@@ -218,6 +238,12 @@ services:
     profiles: ["test"]
     command: ["bundle", "exec", "rspec"]
 
+  # Gate do frontend: tipos, lint e testes.
+  web-test:
+    <<: *web
+    profiles: ["test"]
+    command: ["npm", "run", "gate"]
+
 volumes:
   postgres-data:
   kafka-data:
@@ -225,3 +251,4 @@ volumes:
   bootsnap:
   broker-bundle:
   mock-agent-bundle:
+  web-node-modules:
