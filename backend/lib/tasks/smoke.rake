@@ -102,13 +102,23 @@ namespace :smoke do
     status, sent = Smoke.http(:post, "/api/tickets/#{ticket.id}/messages", headers: analyst,
                                                                           body: { text: "Oi, aqui é a Ana." }.to_json)
     Smoke.check(status == 201 && sent["sla_met"] == true, "a resposta do analista devolveu #{status}: #{sent}")
-    status, = Smoke.http(:post, "/api/tickets/#{ticket.id}/close", headers: analyst)
-    Smoke.check(status == 200, "fechar devolveu #{status}")
+    status, closed = Smoke.http(:post, "/api/tickets/#{ticket.id}/close", headers: analyst,
+                                body: { resolution_code: "resolved", resolution_note: "Explicado ao cliente." }.to_json)
+    Smoke.check(status == 200, "fechar devolveu #{status}: #{closed}")
 
     events = ticket.conversation_events.order(:id).pluck(:kind)
     expected = %w[ticket.opened message.received message.sent ticket.escalated ticket.assigned message.sent ticket.closed]
     Smoke.check(events == expected, "linha do tempo inesperada #{events}")
-    puts "4. analista respondeu dentro do prazo e fechou: #{events.join(' > ')}"
+    puts "4. analista respondeu dentro do prazo e fechou como resolvido: #{events.join(' > ')}"
+
+    # O cliente volta: o evento para o agente leva a memória do contato anterior (ADR 0006).
+    status, again = Smoke.send_customer_message(customer, "#{customer}-2", "voltei [responder]")
+    Smoke.check(status == 201 && again["ticket_id"] != ticket.id, "a volta do cliente devolveu #{status}: #{again}")
+    event = OutboxEvent.where("payload->>'type' = 'message.created'").where("payload->>'ticket_id' = ?", again["ticket_id"]).sole
+    remembered = event.payload.dig("memory", "tickets")
+    Smoke.check(remembered.map { |item| item["ticket_id"] } == [ ticket.id ] && remembered.first["summary"].to_s.include?("Explicado"),
+                "memória inesperada no evento do agente: #{remembered}")
+    puts "5. cliente voltou e o agente recebeu a memória: #{remembered.first['summary']}"
     puts "OK"
   end
 

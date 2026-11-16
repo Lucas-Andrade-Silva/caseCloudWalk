@@ -11,7 +11,8 @@ module Api
         end,
         events: @ticket.conversation_events.order(:id).map do |event|
           { kind: event.kind, actor: event.actor, data: event.data, created_at: event.created_at.iso8601(3) }
-        end
+        end,
+        memory: Memory::Recall.call(ticket: @ticket)
       )
     end
 
@@ -44,13 +45,16 @@ module Api
     end
 
     def close
+      body = parse_json(request.raw_post)
       @ticket.with_lock do
         return unless owner!
 
-        @ticket.transition_to!("closed")
-        @ticket.record_event!(kind: "ticket.closed", actor: "analyst", data: { assignee_id: current_analyst.id })
+        Tickets::Close.call(ticket: @ticket, analyst: current_analyst,
+                            resolution_code: body["resolution_code"], resolution_note: body["resolution_note"])
       end
       render json: ticket_summary(@ticket)
+    rescue Tickets::Close::Invalid => error
+      render status: :unprocessable_content, json: { error: error.message }
     end
 
     private

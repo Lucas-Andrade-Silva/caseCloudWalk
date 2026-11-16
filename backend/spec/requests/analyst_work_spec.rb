@@ -127,27 +127,54 @@ RSpec.describe "Trabalho do analista" do
       expect(response.parsed_body["sla_met"]).to be(false)
     end
 
+    def close(as: "Ana", **body)
+      post "/api/tickets/#{ticket.id}/close", params: body.to_json, headers: json.merge(auth_as(as))
+    end
+
     it "só o dono escreve e fecha" do
       take
 
       say("Eu também!", as: "Beto")
       expect(response).to have_http_status(:forbidden)
 
-      post "/api/tickets/#{ticket.id}/close", headers: auth_as("Beto")
+      close(as: "Beto", resolution_code: "resolved")
       expect(response).to have_http_status(:forbidden)
       expect(ticket.reload.mode).to eq("human")
     end
 
-    it "fecha o ticket e não deixa fechar de novo" do
+    it "fecha com a resolução, grava o resumo de encerramento e não deixa fechar de novo" do
+      take
+      travel_to(noon + 30.minutes)
+
+      close(resolution_code: "resolved", resolution_note: "Troquei a bateria pelo correio.")
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to include("mode" => "closed", "resolution_code" => "resolved")
+      expect(ticket.reload).to have_attributes(mode: "closed", closed_at: noon + 30.minutes,
+                                               resolution_code: "resolved",
+                                               resolution_note: "Troquei a bateria pelo correio.")
+      event = ticket.conversation_events.order(:id).last
+      expect(event.kind).to eq("ticket.closed")
+      expect(event.data).to include("resolution_code" => "resolved")
+      expect(event.data).not_to have_key("resolution_note")
+      summary = ClosingSummary.find_by!(ticket: ticket)
+      expect(summary).to have_attributes(customer: ticket.customer, brand: ticket.brand, source: "template",
+                                         version: 1, expires_at: noon + 30.minutes + 90.days)
+      expect(summary.text).to include("Troquei a bateria pelo correio.")
+
+      close(resolution_code: "resolved")
+      expect(response).to have_http_status(:conflict)
+    end
+
+    it "não fecha sem código de resolução válido ou com nota longa demais" do
       take
 
-      post "/api/tickets/#{ticket.id}/close", headers: auth_as("Ana")
-      expect(response).to have_http_status(:ok)
-      expect(ticket.reload.mode).to eq("closed")
-      expect(ticket.conversation_events.order(:id).last.kind).to eq("ticket.closed")
-
-      post "/api/tickets/#{ticket.id}/close", headers: auth_as("Ana")
-      expect(response).to have_http_status(:conflict)
+      [ {}, { resolution_code: "sumiu" }, { resolution_code: "resolved", resolution_note: "x" * 2001 } ].each do |body|
+        close(**body)
+        expect(response).to have_http_status(:unprocessable_content), "esperava 422 para #{body.keys}"
+      end
+      expect(ticket.reload.mode).to eq("human")
+      expect(ClosingSummary.count).to eq(0)
     end
 
     it "recusa mensagem vazia" do
@@ -172,6 +199,20 @@ RSpec.describe "Trabalho do analista" do
       expect(body["handoff_brief"]).to include("reason" => "teste")
       expect(body["messages"].map { |m| [ m["seq"], m["sender"] ] }).to eq([ [ 1, "customer" ] ])
       expect(body["events"].map { |e| e["kind"] }).to eq(%w[ticket.opened message.received ticket.escalated])
+      expect(body["memory"]).to eq("window_days" => 90, "tickets" => [])
+    end
+
+    it "mostra a memória do cliente com o resumo de encerramento do contato anterior" do
+      previous = escalated_ticket("c-1")
+      previous.update!(mode: "human", assignee: User.find_by!(name: "Ana"))
+      Tickets::Close.call(ticket: previous, analyst: User.find_by!(name: "Ana"), resolution_code: "resolved")
+      again = receive_message(provider_message_id: "wamid.de-novo", customer_external_id: "c-1").ticket
+
+      get "/api/tickets/#{again.id}", headers: auth_as("Ana")
+
+      item = response.parsed_body["memory"]["tickets"].sole
+      expect(item).to include("ticket_id" => previous.id, "resolution_code" => "resolved")
+      expect(item["summary"]).to start_with("Ticket #{previous.id} via whatsapp")
     end
 
     it "esconde ticket de marca que o analista não atende" do

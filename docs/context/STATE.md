@@ -4,9 +4,9 @@ Atualizado em: 2026-11-16
 
 ## Fase atual
 
-Construção em andamento. Fatias 01 a 05 commitadas localmente. **Piloto de carga em modo de produção feito**
-(`docs/research/2026-11-16-piloto-de-carga.md`): o relay aguenta o 10×; o gargalo é a capacidade da API
-(1 × 3 não aguenta, 4 × 5 aguenta); achado e corrigido um deadlock na ingestão. Entrega até **2026-11-27**.
+Construção em andamento. Fatias 01 a 05 e o piloto de carga commitados localmente (piloto:
+`docs/research/2026-11-16-piloto-de-carga.md`; API em 4 × 5; deadlock da ingestão corrigido).
+**Fatia 06 (memória do cliente, ADR 0006) implementada e verde, sem commit.** Entrega até **2026-11-27**.
 Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM → experimento oficial e README.
 
 ## Onde está cada coisa
@@ -14,15 +14,15 @@ Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM �
 - Regras de trabalho, arquitetura, plano e protocolos: `docs/PLAYBOOK.md` (leia o §0 sempre).
 - Decisões: `docs/decisions/0002` (arquitetura e escopo), `0003` (integração com o agente, ticket único,
   resposta atrasada), `0004` (escalação, P1–P4, atribuição, `sidekiq-cron`, agente mudo: limite de 30 s e
-  meta de ≤ 40 s) e `0005` (equipes, regras em dois momentos, fatos, versões, auditoria).
-- Especificações de fatia: `docs/specs/01` a `05`.
+  meta de ≤ 40 s), `0005` (equipes, regras em dois momentos, fatos, versões, auditoria) e `0006` (memória).
+- Especificações de fatia: `docs/specs/01` a `06`.
 - Brief do parceiro: `docs/TAPI_cloudwalk.pdf`. Pesquisa de origem: `docs/research/`.
 
 ## Comandos oficiais
 
 - Subir tudo: `docker compose up -d --build` (se só o código mudou, `docker compose up -d --force-recreate
   api` aplica migrações; reinicie `relay`, `sidekiq` e consumidores, que são processos longos).
-- **Gates** (resultado em 2026-11-16): `docker compose run --rm test` (plataforma, 154 exemplos),
+- **Gates** (resultado em 2026-11-16): `docker compose run --rm test` (plataforma, 165 exemplos),
   `docker compose run --rm broker-test` (21) e `docker compose run --rm mock-agent-test` (20). Zero falhas.
 - **Fumaça com a pilha no ar** (`docker compose exec api bundle exec rails <tarefa>`): `smoke:round_trip`,
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
@@ -34,9 +34,7 @@ Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM �
   --force-recreate mock-agent`.
 - **Falhas:** `outbox:dead`, `outbox:retry_dead[id]`, `outbox:discard_dead[id]` (plataforma) e
   `docker compose exec broker bin/dlq list|replay|purge` (respostas do agente).
-- Um arquivo só: `docker compose run --rm test bundle exec rspec caminho/do_spec.rb`
-- Lint da plataforma: `docker compose run --rm test bundle exec rubocop`
-- Gate do frontend: ainda não existe (não há frontend).
+- Um arquivo: `docker compose run --rm test bundle exec rspec <spec>`; lint: `... test bundle exec rubocop`.
 
 ## O que existe no código
 
@@ -48,7 +46,11 @@ Caminho de uma mensagem (ADR 0003):
   - `POST /api/agent/replies` (bot): `reply` e `escalate`, idempotente pelo `agent_turn_id`.
   - Handoff: máquina de estados com `handoff_epoch`; `Handoff::Escalate` reavalia as regras com fatos de
     escalação (fila da regra, senão prevista, senão padrão); brief por template; vigia do agente mudo.
-  - Analista (token `analyst`): `work/next` pelo prazo mais próximo, ver, assumir, responder, fechar.
+  - Analista (token `analyst`): `work/next` pelo prazo mais próximo, ver, assumir, responder, fechar (com
+    `resolution_code` obrigatório e nota opcional).
+  - Memória (ADR 0006): 5 tickets mais recentes do cliente na marca, 90 dias (`MEMORY_WINDOW_DAYS`), com
+    resumo de encerramento por template; vai no payload do agente e no `GET` do ticket. A operação apaga
+    a memória em `DELETE /api/ops/brands/:brand/customers/:external_id/memory` (auditado).
   - Operação (token `ops`): `/api/ops/teams`, `/api/ops/queues`, `/api/ops/brands/:brand/rule_sets`,
     `/api/ops/rule_sets/:id` (+ `publish`, `dry_run`). Erros de regra vêm com caminho.
   - Motor de regras em `app/services/rules/`: catálogo de fatos, avaliador puro, validador, fatos, roteador,
@@ -65,7 +67,7 @@ Caminho de uma mensagem (ADR 0003):
 - Seeds de desenvolvimento: equipes Atendimento InfinitePay, Atendimento JIM, Crédito e Dispositivo; filas
   padrão, de crédito e de maquininha; regras v1 publicadas nas duas marcas; analistas Ana, Bruno e Carla
   (`dev-analyst-<nome>`) e operação Olivia (`dev-ops-olivia`). Seeds não sobrescrevem o que já existe.
-- Ainda **não** existem: LLM (enriquecimento, brief, memória, regras em linguagem natural), gatilhos por
+- Ainda **não** existem: LLM (enriquecimento, brief, resumos, regras em linguagem natural), gatilhos por
   fatos de LLM, envio da resposta ao canal, ActionCable, frontend, RLS, k6 e observabilidade.
 
 ## Verdades vigentes
@@ -80,23 +82,22 @@ Caminho de uma mensagem (ADR 0003):
 ## Estado do repositório
 
 - Branches empilhadas: `docs/project-playbook` → `chore/platform-foundation` → `feat/agent-integration` →
-  `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` → `test/production-pilot`
-  (piloto e correção do deadlock, sem commit).
+  `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` → `test/production-pilot` →
+  `feat/customer-memory` (fatia 06, sem commit).
 - Só `docs/project-playbook` está no remoto. Nenhum PR aberto (a CLI `gh` não está autenticada).
 
 ## Próximos passos
 
-1. Commit do piloto. Decidido: experimento oficial com a API em 4 × 5 (padrão do `compose.pilot.yaml`).
-2. Memória entre interações sem LLM (exigência do TAPI): histórico estruturado do cliente no payload do
-   agente e no painel.
-3. Interface (chat, painel do analista, editor de filas, mapa vivo), depois LLM, experimento oficial e README.
-4. PRs das branches, com revisão independente em outro chat.
+1. Commit da fatia 06; dono confirma a parte "proposta" do ADR 0006.
+2. Interface (chat, painel do analista, editor de filas, mapa vivo), depois LLM, experimento oficial e README.
+3. PRs das branches, com revisão independente em outro chat.
 
 ## Pendências do dono
 
 - Confirmar R2 a R5 do ADR 0005 (regras em dois momentos, lista de fatos, versão como documento único,
   auditoria sem o texto) e os contratos das fatias 02 a 04.
 - Confirmar as marcas `[escalar]`/`[responder]` do mock e as escolhas da fatia 01.
+- Confirmar a proposta do ADR 0006 (forma do payload, exclusão que preserva tickets e mensagens).
 - Desenho do enriquecimento por LLM agora que a plataforma não usa Kafka (ADR 0003, consequência de E1).
 - O dia 27 inclui a apresentação? Agrupar em cerca de 5 PRs? Linguagem da análise (Python assumido).
 - Definição do cluster do mapa vivo, limites de alerta e biblioteca do grafo.
