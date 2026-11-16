@@ -112,6 +112,29 @@ namespace :smoke do
     puts "OK"
   end
 
+  desc "A regra publicada manda a mensagem de crédito de valor alto para a fila e a prioridade certas"
+  task routing: :environment do
+    Rails.logger.level = Logger::WARN
+    customer = "smoke-#{SecureRandom.hex(4)}"
+
+    status, created = Smoke.send_customer_message(customer, "#{customer}-1",
+                                                  "meu empréstimo de R$ 12.000,00 não caiu [escalar]")
+    Smoke.check(status == 201, "o webhook respondeu #{status}: #{created}")
+    ticket = Ticket.find(created["ticket_id"])
+    opening = Decision.find_by!(ticket: ticket, step: "routing.opening")
+    puts "1. abertura: regra #{opening.matched_rule_id} (versão #{opening.rule_set_version}) -> " \
+         "#{opening.output['queue']}, #{opening.output['priority']}, tags #{opening.output['tags']}"
+    Smoke.check(opening.matched_rule_id == "credito-alto-valor", "regra inesperada #{opening.matched_rule_id}")
+
+    Smoke.wait_until("a escalação") { ticket.reload.mode == "pending_human" }
+    Smoke.check(ticket.queue.slug == "credito-infinitepay" && ticket.priority == "p1",
+                "fila ou prioridade inesperada: #{ticket.queue.slug}, #{ticket.priority}")
+    minutes = ((ticket.first_response_due_at - ticket.escalated_at) / 60).round
+    puts "2. escalado para #{ticket.queue.slug} (equipe #{ticket.queue.team.name}), #{ticket.priority}, " \
+         "prazo de #{minutes} min, tags #{ticket.tags}"
+    puts "OK"
+  end
+
   desc "Com o agente fora do ar, o vigia do Sidekiq escala a conversa (pare o mock-agent antes)"
   task agent_silence: :environment do
     Rails.logger.level = Logger::WARN

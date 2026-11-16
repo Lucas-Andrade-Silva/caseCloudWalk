@@ -2,6 +2,9 @@ module Handoff
   # Tira o ticket da IA e o põe na fila humana: modo, fila, prazo de SLA, brief, linha do tempo e aviso
   # ao agente, tudo na transação de quem chama. Quem chama segura o lock do ticket.
   #
+  # A fila e a prioridade vêm das regras, reavaliadas com os fatos de escalação. Sem regra: fila prevista
+  # na abertura; sem ela, a fila padrão da marca (ADR 0005, R2).
+  #
   # `target` é "pending_human" (espera um analista puxar) ou "human" (takeover: já tem dono).
   class Escalate
     class NoDefaultQueue < StandardError; end
@@ -20,14 +23,19 @@ module Handoff
 
     def call
       now = Time.current
-      queue = TicketQueue.default_for(@ticket.brand) or
+      facts = Rules::Facts.for_escalation(@ticket, trigger: @trigger, reason: @reason, now: now)
+      outcome = Rules::Router.evaluate(brand: @ticket.brand, facts: facts)
+      queue = outcome.queue || @ticket.queue || TicketQueue.default_for(@ticket.brand) or
         raise NoDefaultQueue, "a marca #{@ticket.brand.slug} não tem fila padrão"
-      level = PriorityLevel.find(@ticket.priority)
+      priority = outcome.priority || @ticket.priority
+      level = PriorityLevel.find(priority)
       brief = Brief.build(ticket: @ticket, trigger: @trigger, reason: @reason, now: now)
 
       @ticket.transition_to!(
         @target,
         queue: queue,
+        priority: priority,
+        tags: @ticket.tags | outcome.tags,
         assignee: @assignee,
         escalation_trigger: @trigger,
         escalation_reason: @reason,
@@ -37,6 +45,7 @@ module Handoff
         awaiting_agent_since: nil
       )
 
+      Rules::Router.record!(ticket: @ticket, step: "routing.escalation", facts: facts, outcome: outcome)
       @ticket.record_event!(kind: "ticket.escalated", actor: @actor, data: event_data(queue))
       AgentEvents.ticket_escalated!(ticket: @ticket)
       @ticket

@@ -19,5 +19,21 @@ Rails.application.routes.draw do
         post :close
       end
     end
+
+    # Operação: equipes, filas e regras.
+    namespace :ops do
+      resources :teams, only: %i[index create]
+      post "teams/:id/members", to: "teams#add_member"
+      delete "teams/:id/members/:user_id", to: "teams#remove_member"
+      resources :queues, only: %i[index create update]
+      get "brands/:brand/rule_sets", to: "rule_sets#index"
+      post "brands/:brand/rule_sets", to: "rule_sets#create"
+      resources :rule_sets, only: %i[show update] do
+        member do
+          post :publish
+          post :dry_run
+        end
+      end
+    end
   end
 end
