@@ -9,5 +9,15 @@ Rails.application.routes.draw do
     namespace :agent do
       resources :replies, only: :create
     end
+
+    # Analista humano.
+    post "work/next", to: "work#next"
+    resources :tickets, only: :show do
+      member do
+        post :takeover
+        post :messages
+        post :close
+      end
+    end
   end
 end

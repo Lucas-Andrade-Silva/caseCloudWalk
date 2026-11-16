@@ -4,7 +4,8 @@ Manual de operação para qualquer sessão (Codex, Claude ou outro agente). Resp
 construindo, como, com quais regras e o que fazer quando algo dá errado.
 
 - O **porquê** e as alternativas descartadas estão em `docs/decisions/0002-arquitetura-stack-e-escopo.md` e
-  em `docs/decisions/0003-integracao-com-o-agente.md` (este corrige a ordem da integração com o agente).
+  em `docs/decisions/0003-integracao-com-o-agente.md` (este corrige a ordem da integração com o agente) e
+  em `docs/decisions/0004-handoff-prioridade-e-atribuicao.md` (escalação, prioridades e atribuição).
 - O **estado mutável** (onde estamos hoje) está em `docs/context/STATE.md`.
 - A pesquisa de origem está em `docs/research/2026-11-08-ideacao-arquitetura.md` (consulta, não leitura obrigatória).
 - Se este arquivo, o ADR, o `STATE.md` e o código divergirem: **pare e relate o conflito** ao dono.
@@ -275,7 +276,8 @@ A DLQ tem listar, purgar e reprocessar.
   marca. Meça **idade** da fila, não só tamanho.
 - Prioridade: `peso da prioridade + envelhecimento (espera / alvo de SLA) + match de skill`, filtrada por
   presença e capacidade, **calculada no momento de puxar**.
-- Níveis de prioridade e SLAs por prioridade: **pendente** (propor ao dono).
+- Níveis de prioridade: P1 urgente (5 min), P2 alta (15 min), P3 normal (1 h), P4 baixa (4 h), prazo da primeira
+  resposta humana. O analista puxa o ticket de prazo mais próximo (ADR 0004).
 
 ### 3.6 Antipadrões proibidos
 
@@ -380,7 +382,7 @@ quebra de ordem ou conversa órfã.
 mensagem → ~0,7 ticket/s, ~5 msg/s, ~20 eventos/s. Picos 10× (~200/s) e 50× (~1.000/s) por 5 a 15 min.
 
 **Cenários:** (S1) rampa 1×→10×→50×→1× com 1, 2 e 4 consumidores; (S2) Kafka parado por 60 s com `docker pause`
-+ reentrega de webhooks de 1 a 5 vezes fora de ordem; (S3) agente lento ou falhando → escala em ≤ 30 s;
++ reentrega de webhooks de 1 a 5 vezes fora de ordem; (S3) agente lento ou falhando → escala em ≤ 40 s (limite de silêncio de 30 s, ADR 0004, H6);
 (S4) poison message → DLQ sem travar a partição; (S5) consumidor cai a cada 30 s; (S6) noisy neighbor entre
 marcas; (S7) timeout do stub de LLM → modo só-regras com roteamento correto por fatos duros.
 
@@ -449,7 +451,7 @@ disco do Windows é lento). Segredos em `.env` (ignorado; manter `.env.example`)
 
 **Pendentes (perguntar ao dono antes de assumir):** o dia 27 inclui a apresentação? agrupar em ~5 PRs?
 linguagem da análise (Python assumido); desenho do caminho de enriquecimento por LLM sem Kafka na
-plataforma; níveis de prioridade e SLAs por prioridade; definição do cluster e limites do mapa; biblioteca do grafo.
+plataforma; definição do cluster e limites do mapa; biblioteca do grafo.
 
 **Perguntas para a CloudWalk:** volume real por canal e marca e fator de pico; formato das mensagens no tópico
 Kafka; como o agente sinaliza escalação; quem é dono do broker; residência de dados BR e US; taxa real de

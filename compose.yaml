@@ -3,6 +3,7 @@
 # Caminho de uma mensagem (ADR 0003):
 #   canal -> api (Postgres + outbox) -> relay -> webhook -> broker -> Kafka -> mock-agent
 #   mock-agent -> Kafka -> broker-replies -> api (como usuário bot)
+#   sidekiq: jobs periódicos, como o vigia que escala o ticket quando o agente não responde
 #
 # Gates de teste:
 #   docker compose run --rm test
@@ -29,6 +30,7 @@ x-backend-env: &backend-env
   BROKER_WEBHOOK_SECRETS: ${BROKER_WEBHOOK_SECRETS:-dev-broker-secret}
   BROKER_WEBHOOK_URL: http://broker:4000/webhooks/helpdesk
   BOT_API_TOKEN: ${BOT_API_TOKEN:-dev-bot-token}
+  REDIS_URL: redis://redis:6379/0
 
 x-broker: &broker
   build:
@@ -133,6 +135,19 @@ services:
       broker:
         condition: service_healthy
 
+  # Jobs em segundo plano e periódicos (sidekiq-cron, agendamento em backend/config/schedule.yml).
+  sidekiq:
+    <<: *backend
+    environment:
+      <<: *backend-env
+    command: ["bundle", "exec", "sidekiq"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   # Broker, sentido plataforma -> agente: recebe webhooks e publica no Kafka.
   # Na subida, cria os tópicos da borda do agente.
   broker:
@@ -168,6 +183,7 @@ services:
     <<: *mock-agent
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MOCK_ESCALATION_RATE: ${MOCK_ESCALATION_RATE:-0.3}
     command: ["bundle", "exec", "karafka", "server"]
     restart: unless-stopped
     depends_on:

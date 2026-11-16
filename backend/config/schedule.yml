@@ -1,0 +1,6 @@
+# Jobs periódicos, carregados pelo sidekiq-cron quando o Sidekiq sobe (ADR 0004, H5).
+# O cron tem seis campos: o primeiro são os segundos.
+agent_silence_watchdog:
+  cron: "*/5 * * * * *"
+  class: "AgentSilenceWatchdogJob"
+  description: "Escala tickets em que o cliente espera o agente há mais do que o limite"
