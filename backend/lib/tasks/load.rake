@@ -61,7 +61,8 @@ namespace :load do
 
     puts "rajada #{run}: #{entries.size} envios (#{plan.count { |i| i[:redelivery] }} reentregas) em #{took.round(1)} s"
     puts "status: #{entries.group_by { |entry| entry[:status] }.transform_values(&:size)}"
-    puts "ACK do webhook (ambiente de desenvolvimento, não é medida): p50 #{percentile.(0.5)} ms, p99 #{percentile.(0.99)} ms"
+    caveat = Rails.env.production? ? "" : "; fora de produção, não vale como medida"
+    puts "ACK do webhook (#{Rails.env}#{caveat}): p50 #{percentile.(0.5)} ms, p99 #{percentile.(0.99)} ms"
     puts "ledger: #{ledger_path.relative_path_from(Rails.root)}"
   end
 end

@@ -77,10 +77,15 @@ module Ingestion
       Result.new(ticket: message.ticket, message: message, duplicate: true)
     end
 
+    # Sem lock na linha do cliente: a ingestão só lê o cliente. O create_or_find_by! do Rails relê com
+    # lock depois do conflito, e isso invertia a ordem dos locks com quem já segurava o ticket (deadlock
+    # no piloto de carga de 2026-11-16). Quem perde a corrida de criação espera o vencedor e lê o dele.
     def find_or_create_customer(brand)
-      Customer.create_or_find_by!(brand: brand, external_id: @customer_external_id) do |customer|
-        customer.name = @customer_name
-      end
+      Customer.insert(
+        { brand_id: brand.id, external_id: @customer_external_id, name: @customer_name },
+        unique_by: %i[brand_id external_id]
+      )
+      Customer.find_by!(brand: brand, external_id: @customer_external_id)
     end
 
     # O índice único parcial garante um ticket aberto por cliente, marca e canal. Quem perde a

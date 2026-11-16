@@ -4,10 +4,10 @@ Atualizado em: 2026-11-16
 
 ## Fase atual
 
-Construção em andamento. Fatias 01 a 04 (fundação, integração com o agente, handoff, regras e filas)
-commitadas localmente. **Fatia 05 (resiliência e verificação) implementada e verde, ainda sem commit.**
-Entrega até **2026-11-27**. Backend funcional completo sem LLM e sem telas. Próximo: decidir a ordem entre
-LLM, interface (painel, editor de filas, mapa vivo) e experimento oficial (playbook §10).
+Construção em andamento. Fatias 01 a 05 commitadas localmente. **Piloto de carga em modo de produção feito**
+(`docs/research/2026-11-16-piloto-de-carga.md`): o relay aguenta o 10×; o gargalo é a capacidade da API
+(1 × 3 não aguenta, 4 × 5 aguenta); achado e corrigido um deadlock na ingestão. Entrega até **2026-11-27**.
+Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM → experimento oficial e README.
 
 ## Onde está cada coisa
 
@@ -28,6 +28,8 @@ LLM, interface (painel, editor de filas, mapa vivo) e experimento oficial (playb
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
 - **Rajada e invariantes:** `load:burst[n,taxa,reentrega,seed]` grava `tmp/ledgers/<run>.jsonl`;
   `invariants:check[ledger,espera_s]` espera esvaziar e confere (código 1 se violar).
+- **Piloto em produção:** `API_PORT=3002 docker compose -p helpdesk-pilot -f compose.yaml -f compose.pilot.yaml
+  up -d --build` (projeto e banco próprios; `WEB_CONCURRENCY` e `RAILS_MAX_THREADS` configuram a API).
 - **Caos no mock:** `MOCK_CHAOS="latency_ms=200..2000,duplicate=0.1,silence=0.05,..." docker compose up -d
   --force-recreate mock-agent`.
 - **Falhas:** `outbox:dead`, `outbox:retry_dead[id]`, `outbox:discard_dead[id]` (plataforma) e
@@ -78,14 +80,17 @@ Caminho de uma mensagem (ADR 0003):
 ## Estado do repositório
 
 - Branches empilhadas: `docs/project-playbook` → `chore/platform-foundation` → `feat/agent-integration` →
-  `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` (esta com a fatia 05 **sem commit**).
+  `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` → `test/production-pilot`
+  (piloto e correção do deadlock, sem commit).
 - Só `docs/project-playbook` está no remoto. Nenhum PR aberto (a CLI `gh` não está autenticada).
 
 ## Próximos passos
 
-1. Commit da fatia 05.
-2. PRs das seis branches, com revisão independente em outro chat.
-3. Dono decide a ordem do que falta: LLM, interface e experimento oficial (k6 em modo de produção).
+1. Commit do piloto. Decidido: experimento oficial com a API em 4 × 5 (padrão do `compose.pilot.yaml`).
+2. Memória entre interações sem LLM (exigência do TAPI): histórico estruturado do cliente no payload do
+   agente e no painel.
+3. Interface (chat, painel do analista, editor de filas, mapa vivo), depois LLM, experimento oficial e README.
+4. PRs das branches, com revisão independente em outro chat.
 
 ## Pendências do dono
 
@@ -101,7 +106,9 @@ Caminho de uma mensagem (ADR 0003):
 - Prazo curto para o escopo escolhido; ordem de corte no playbook (§10), aplicada só com OK do dono.
 - **Latência em desenvolvimento não vale como medida** (~0,45 s por chamada fora do controller, recarga de
   código sobre o disco do Windows). O experimento precisa rodar em modo de produção.
-- O relay entrega um webhook por vez (mantém a ordem, limita a vazão). Medir no piloto de carga.
+- Com a API em 1 × 3, o pico de 10× atrasa as respostas além de 30 s e o vigia escala a maioria dos tickets
+  (sem perda). Ponta a ponta p99 em 10× ficou em 1.026 ms com 4 × 5 e mock instantâneo: no limite da meta.
+  50× não testado.
 - Uma queda de 20 s do Postgres fez o vigia escalar tickets cujas respostas atrasaram além de 30 s. É o
   comportamento decidido, mas aumenta a fila humana depois de uma queda; medir no experimento.
 - As respostas do bot e do analista são gravadas, mas ainda não chegam ao canal nem a uma tela.

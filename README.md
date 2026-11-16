@@ -78,6 +78,13 @@ docker compose exec api bundle exec rails "invariants:check[tmp/ledgers/<arquivo
 Para fazer o agente simulado se comportar mal (atraso, duplicata, JSON quebrado, silêncio, queda), suba o
 mock com `MOCK_CHAOS` (exemplos em `.env.example`).
 
+Tempos medidos no ambiente de desenvolvimento não valem. Para medir, suba uma cópia em modo de produção, com
+banco próprio (resultados do piloto em [`docs/research/2026-11-16-piloto-de-carga.md`](docs/research/2026-11-16-piloto-de-carga.md)):
+
+```bash
+API_PORT=3002 docker compose -p helpdesk-pilot -f compose.yaml -f compose.pilot.yaml up -d --build
+```
+
 ## Onde está cada coisa
 
 - Estado atual e próximos passos: [`docs/context/STATE.md`](docs/context/STATE.md)
