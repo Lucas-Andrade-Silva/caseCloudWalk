@@ -24,7 +24,9 @@ module AgentEvents
           sender: message.sender,
           text: message.body,
           created_at: message.created_at.iso8601(3)
-        }
+        },
+        # O que a plataforma lembra dos contatos anteriores do cliente na marca (ADR 0006).
+        memory: Memory::Recall.call(ticket: ticket)
       }
     )
   end

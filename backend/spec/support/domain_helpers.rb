@@ -78,7 +78,7 @@ module DomainHelpers
   end
 
   def delete_domain_data
-    [ OutboxEvent, ProcessedEvent, Decision, ConversationEvent, Message, InboundEvent, Ticket, RuleSet,
+    [ OutboxEvent, ProcessedEvent, Decision, ClosingSummary, MemoryErasure, ConversationEvent, Message, InboundEvent, Ticket, RuleSet,
       TeamMembership, TicketQueue, Team, Customer, User, Brand, PriorityLevel ].each(&:delete_all)
   end
 end
