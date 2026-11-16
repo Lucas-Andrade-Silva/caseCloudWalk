@@ -62,6 +62,22 @@ docker compose run --rm mock-agent-test
 
 Os testes usam o Postgres e o Kafka reais do Compose; nenhum chama rede externa nem LLM.
 
+## Como provar a robustez
+
+Uma rajada de mensagens com reentregas grava um ledger; o verificador espera o fluxo esvaziar e confere os
+quatro invariantes (zero perda, zero duplicata, ordem e nenhum ticket esquecido):
+
+```bash
+docker compose exec api bundle exec rails "load:burst[300,5,0.2,42]"
+```
+
+```bash
+docker compose exec api bundle exec rails "invariants:check[tmp/ledgers/<arquivo>.jsonl,180]"
+```
+
+Para fazer o agente simulado se comportar mal (atraso, duplicata, JSON quebrado, silêncio, queda), suba o
+mock com `MOCK_CHAOS` (exemplos em `.env.example`).
+
 ## Onde está cada coisa
 
 - Estado atual e próximos passos: [`docs/context/STATE.md`](docs/context/STATE.md)
