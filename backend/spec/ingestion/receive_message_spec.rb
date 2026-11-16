@@ -67,5 +67,33 @@ RSpec.describe Ingestion::ReceiveMessage do
       seqs_in_outbox_order = OutboxEvent.order(:id).map { |event| event.payload.dig("message", "seq") }
       expect(seqs_in_outbox_order).to eq([ 1, 2, 3, 4 ])
     end
+
+    # Piloto de carga (2026-11-16): travar o cliente na ingestão invertia a ordem dos locks com quem já
+    # segurava o ticket (cliente -> ticket de um lado, ticket -> KEY SHARE no cliente do outro) e dava
+    # deadlock. A ingestão só lê o cliente, então não pode segurar nada mais forte que KEY SHARE nele.
+    it "não trava a linha de um cliente que já existe" do
+      customer = receive_message.ticket.customer
+      received = Concurrent::CountDownLatch.new(1)
+      checked = Concurrent::CountDownLatch.new(1)
+
+      ingestion = Thread.new do
+        ApplicationRecord.transaction do
+          receive_message(provider_message_id: "wamid.2")
+          received.count_down
+          checked.wait(5)
+        end
+      end
+      received.wait(5)
+
+      stronger_lock = lambda do
+        ApplicationRecord.connection_pool.with_connection do
+          ApplicationRecord.transaction { Customer.lock("FOR NO KEY UPDATE NOWAIT").find(customer.id) }
+        end
+      end
+      expect(&stronger_lock).not_to raise_error
+    ensure
+      checked&.count_down
+      ingestion&.join
+    end
   end
 end
