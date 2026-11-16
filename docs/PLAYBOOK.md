@@ -5,7 +5,8 @@ construindo, como, com quais regras e o que fazer quando algo dá errado.
 
 - O **porquê** e as alternativas descartadas estão em `docs/decisions/0002-arquitetura-stack-e-escopo.md` e
   em `docs/decisions/0003-integracao-com-o-agente.md` (este corrige a ordem da integração com o agente) e
-  em `docs/decisions/0004-handoff-prioridade-e-atribuicao.md` (escalação, prioridades e atribuição).
+  em `docs/decisions/0004-handoff-prioridade-e-atribuicao.md` (escalação, prioridades e atribuição) e
+  em `docs/decisions/0005-equipes-e-motor-de-regras.md` (equipes e execução das regras).
 - O **estado mutável** (onde estamos hoje) está em `docs/context/STATE.md`.
 - A pesquisa de origem está em `docs/research/2026-11-08-ideacao-arquitetura.md` (consulta, não leitura obrigatória).
 - Se este arquivo, o ADR, o `STATE.md` e o código divergirem: **pare e relate o conflito** ao dono.
@@ -308,7 +309,9 @@ O gerador de carga grava um ledger JSONL do que enviou; um checker cruza com a a
   `matched_rule_id`.
 - **Dry-run:** aplica a versão candidata aos últimos N tickets e mostra o diff antes de publicar.
 - Sem regra que altere entrada de outra regra, sem scripting livre, sem regra fixa em código por marca.
-- Equipes e analistas podem atender mais de uma marca.
+- Equipes e analistas podem atender mais de uma marca. Equipe é grupo de analistas dona de filas (ADR 0005).
+- As regras rodam na abertura (prioridade, tags, fila prevista) e de novo na escalação (fila e prioridade
+  finais). Sem regra: fila prevista; sem ela, a padrão da marca (ADR 0005, R2).
 - **Regras em linguagem natural** (extra): o LLM gera o JSON, o schema valida, o dry-run mostra o diff, um
   humano aprova. Nunca publica sozinho.
 

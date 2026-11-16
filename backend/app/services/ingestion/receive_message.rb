@@ -34,7 +34,10 @@ module Ingestion
         ticket, opened = find_or_open_ticket(brand, customer)
         message = ticket.append_message!(sender: "customer", body: @text, inbound_event_id: inbound_event_id)
 
-        ticket.record_event!(kind: "ticket.opened", actor: "customer", data: { channel: @channel }) if opened
+        if opened
+          ticket.record_event!(kind: "ticket.opened", actor: "customer", data: { channel: @channel })
+          Rules::Router.route_opening!(ticket)
+        end
         ticket.record_event!(kind: "message.received", actor: "customer",
                              data: { message_id: message.id, seq: message.seq })
         if ticket.ai?

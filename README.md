@@ -6,8 +6,8 @@ webhook, broker e Kafka, e escala para analistas humanos com resumo e contexto. 
 
 O projeto está **em construção**. Hoje, sem telas: uma mensagem entra por um webhook de canal, vira ticket,
 chega ao agente simulado e a resposta volta ao ticket; o agente pode escalar, a plataforma escala sozinha se
-ele ficar em silêncio, e um analista puxa o ticket mais urgente da fila. Regras de fila configuráveis,
-painel e interface ainda não existem.
+ele ficar em silêncio, e um analista puxa o ticket mais urgente da fila. A operação configura equipes, filas
+e regras versionadas (com dry-run) por API. Painel e interface ainda não existem.
 
 ```
 canal -> api (Postgres + outbox) -> relay -> webhook assinado -> broker -> Kafka -> agente simulado
@@ -36,8 +36,13 @@ docker compose exec api bundle exec rails smoke:round_trip
 docker compose exec api bundle exec rails smoke:escalation
 ```
 
+```bash
+docker compose exec api bundle exec rails smoke:routing
+```
+
 O primeiro mostra o agente respondendo. O segundo mostra o agente escalando, um analista puxando o ticket,
-respondendo dentro do prazo e fechando.
+respondendo dentro do prazo e fechando. O terceiro mostra uma regra publicada mandando um pedido de crédito
+de valor alto para a fila de Crédito com prioridade P1.
 
 ## Como testar
 

@@ -3,10 +3,12 @@ module DomainHelpers
   CHANNEL_SECRET = "segredo-do-canal".freeze
   BOT_TOKEN = "token-do-bot".freeze
 
-  # Marca com a sua fila humana padrão (ADR 0004, H2).
+  # Marca com a sua fila humana padrão (ADR 0004, H2), atendida por uma equipe da marca (ADR 0005, R1).
   def create_brand(slug = "infinitepay")
     brand = Brand.create!(slug: slug, name: slug.capitalize)
-    TicketQueue.create!(brand: brand, slug: "#{slug}-atendimento", name: "Atendimento #{brand.name}", default: true)
+    team = Team.create!(slug: "#{slug}-equipe", name: "Equipe #{brand.name}")
+    TicketQueue.create!(brand: brand, team: team, slug: "#{slug}-atendimento", name: "Atendimento #{brand.name}",
+                        default: true)
     brand
   end
 
@@ -20,7 +22,7 @@ module DomainHelpers
 
   def create_analyst(name, brands: [ "infinitepay" ])
     analyst = User.create!(name: name, role: "analyst", token_digest: User.digest(analyst_token(name)))
-    brands.each { |slug| QueueMembership.create!(user: analyst, queue: default_queue(slug)) }
+    brands.each { |slug| TeamMembership.create!(user: analyst, team: default_queue(slug).team) }
     analyst
   end
 
@@ -76,8 +78,8 @@ module DomainHelpers
   end
 
   def delete_domain_data
-    [ OutboxEvent, ProcessedEvent, ConversationEvent, Message, InboundEvent, Ticket, QueueMembership,
-      TicketQueue, Customer, User, Brand, PriorityLevel ].each(&:delete_all)
+    [ OutboxEvent, ProcessedEvent, Decision, ConversationEvent, Message, InboundEvent, Ticket, RuleSet,
+      TeamMembership, TicketQueue, Team, Customer, User, Brand, PriorityLevel ].each(&:delete_all)
   end
 end
 
