@@ -28,4 +28,22 @@ module AgentEvents
       }
     )
   end
+
+  # Avisa o agente que o ticket saiu da IA, para ele parar de atender.
+  def ticket_escalated!(ticket:)
+    OutboxEvent.create!(
+      topic: TOPIC,
+      key: ticket.id,
+      headers: { "brand_id" => ticket.brand.slug },
+      payload: {
+        type: "ticket.escalated",
+        ticket_id: ticket.id,
+        brand: ticket.brand.slug,
+        mode: ticket.mode,
+        handoff_epoch: ticket.handoff_epoch,
+        trigger: ticket.escalation_trigger,
+        reason: ticket.escalation_reason
+      }
+    )
+  end
 end

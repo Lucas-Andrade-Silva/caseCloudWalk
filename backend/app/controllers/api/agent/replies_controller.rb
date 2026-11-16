@@ -12,19 +12,15 @@ module Api
           in_reply_to_seq: payload["in_reply_to_seq"],
           handoff_epoch: payload["handoff_epoch"],
           action: payload["action"],
-          text: payload["text"]
+          text: payload["text"],
+          reason: payload["reason"]
         )
 
         if result.status == :discarded
           render status: :conflict, json: { discarded: true, reason: result.reason }
         else
           duplicate = result.status == :duplicate
-          render status: duplicate ? :ok : :created, json: {
-            message_id: result.message.id,
-            seq: result.message.seq,
-            stale: result.message.stale,
-            duplicate: duplicate
-          }
+          render status: duplicate ? :ok : :created, json: body_for(result, duplicate)
         end
       rescue ::Agent::RecordReply::Invalid => error
         render status: :unprocessable_content, json: { error: error.message }
@@ -33,6 +29,15 @@ module Api
       end
 
       private
+
+      def body_for(result, duplicate)
+        message = result.message
+        if result.escalated
+          { escalated: true, duplicate: duplicate, message_id: message&.id, seq: message&.seq }
+        else
+          { message_id: message.id, seq: message.seq, stale: message.stale, duplicate: duplicate }
+        end
+      end
 
       def authenticate_bot
         token = request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]

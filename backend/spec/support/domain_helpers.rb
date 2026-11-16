@@ -3,13 +3,30 @@ module DomainHelpers
   CHANNEL_SECRET = "segredo-do-canal".freeze
   BOT_TOKEN = "token-do-bot".freeze
 
+  # Marca com a sua fila humana padrão (ADR 0004, H2).
   def create_brand(slug = "infinitepay")
-    Brand.create!(slug: slug, name: slug.capitalize)
+    brand = Brand.create!(slug: slug, name: slug.capitalize)
+    TicketQueue.create!(brand: brand, slug: "#{slug}-atendimento", name: "Atendimento #{brand.name}", default: true)
+    brand
+  end
+
+  def default_queue(slug = "infinitepay")
+    TicketQueue.find_by!(slug: "#{slug}-atendimento")
   end
 
   def create_bot(token: BOT_TOKEN)
     User.create!(name: "Agente de IA", role: "bot", token_digest: User.digest(token))
   end
+
+  def create_analyst(name, brands: [ "infinitepay" ])
+    analyst = User.create!(name: name, role: "analyst", token_digest: User.digest(analyst_token(name)))
+    brands.each { |slug| QueueMembership.create!(user: analyst, queue: default_queue(slug)) }
+    analyst
+  end
+
+  def analyst_token(name) = "token-de-#{name.downcase}"
+
+  def auth_as(name) = { "Authorization" => "Bearer #{analyst_token(name)}" }
 
   def signed_headers(body, secret: CHANNEL_SECRET, id: SecureRandom.uuid, timestamp: Time.now.to_i)
     {
@@ -47,20 +64,33 @@ module DomainHelpers
     )
   end
 
+  # Abre um ticket de um cliente próprio e o escala, como o agente faria.
+  def escalated_ticket(customer, brand: "infinitepay", priority: "p3")
+    ticket = receive_message(provider_message_id: "wamid.#{customer}", customer_external_id: customer,
+                             brand_slug: brand).ticket
+    ticket.update!(priority: priority)
+    ticket.with_lock do
+      Handoff::Escalate.call(ticket: ticket, trigger: "agent_requested", reason: "teste", actor: "bot")
+    end
+    ticket.reload
+  end
+
   def delete_domain_data
-    [ OutboxEvent, ProcessedEvent, ConversationEvent, Message, InboundEvent, Ticket, Customer, User, Brand ]
-      .each(&:delete_all)
+    [ OutboxEvent, ProcessedEvent, ConversationEvent, Message, InboundEvent, Ticket, QueueMembership,
+      TicketQueue, Customer, User, Brand, PriorityLevel ].each(&:delete_all)
   end
 end
 
 RSpec.configure do |config|
   config.include DomainHelpers
+  config.include ActiveSupport::Testing::TimeHelpers
 
   # A suíte parte de um banco vazio, mesmo que uma execução anterior tenha sido interrompida no
   # meio de um teste sem transação.
   config.before(:suite) { Object.new.extend(DomainHelpers).delete_domain_data }
 
   config.before do
+    PriorityLevel.ensure_defaults!
     allow(IntegrationConfig).to receive(:channel_webhook_secrets).and_return([ DomainHelpers::CHANNEL_SECRET ])
   end
 end

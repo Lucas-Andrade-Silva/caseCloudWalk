@@ -124,7 +124,8 @@ linha do tempo de eventos.**
   Picos de 10× (~200 ev/s) e 50× (~1.000 ev/s) por 5 a 15 min.
 - Escalação do mock: 30% e 60% (a CloudWalk real provavelmente fica em outro ponto).
 - Metas: ACK do webhook p99 < 500 ms em 1×; **latência da plataforma** (ponta a ponta menos o tempo do
-  agente) p99 < 1 s em 10×; lag recupera em < 5 min; agente em falha escala em ≤ 30 s; invariantes com
+  agente) p99 < 1 s em 10×; lag recupera em < 5 min; agente em falha escala em ≤ 30 s (substituído pelo ADR 0004, H6: limite de 30 s,
+  escalação em ≤ 40 s); invariantes com
   **zero violações**. As metas são chutes calibrados por um piloto e a mudança é registrada.
 
 **D13. Demais escolhas.**
@@ -155,6 +156,6 @@ Detalhes em `docs/PLAYBOOK.md`.
 - Agrupar o trabalho em cerca de cinco PRs, mantendo a revisão independente.
 - Linguagem da análise do experimento (assumido Python).
 - Política para resposta do agente com `in_reply_to_seq` defasado: descartar ou sinalizar.
-- Níveis de prioridade e SLAs por prioridade.
+- ~~Níveis de prioridade e SLAs por prioridade.~~ Decidido no ADR 0004.
 - Definição final de cluster do mapa vivo, limites de alerta, interações e biblioteca do grafo.
 - Dono do broker e formato real das mensagens: confirmar no onboarding com a CloudWalk.

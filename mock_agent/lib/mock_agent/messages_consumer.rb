@@ -23,7 +23,7 @@ module MockAgent
     private
 
     def responder
-      @responder ||= Responder.new
+      @responder ||= Responder.new(escalation_rate: Config.escalation_rate)
     end
 
     def parse(raw)

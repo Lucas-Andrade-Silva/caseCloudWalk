@@ -176,6 +176,19 @@ ALTER SEQUENCE public.outbox_events_id_seq OWNED BY public.outbox_events.id;
 
 
 --
+-- Name: priority_levels; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.priority_levels (
+    code text NOT NULL,
+    name text NOT NULL,
+    first_response_minutes integer NOT NULL,
+    "position" integer NOT NULL,
+    CONSTRAINT priority_levels_minutes_positive CHECK ((first_response_minutes > 0))
+);
+
+
+--
 -- Name: processed_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -183,6 +196,32 @@ CREATE TABLE public.processed_events (
     consumer_name text NOT NULL,
     event_id uuid NOT NULL,
     processed_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: queue_memberships; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.queue_memberships (
+    user_id uuid NOT NULL,
+    queue_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: queues; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.queues (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    brand_id uuid NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    "default" boolean DEFAULT false NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
 );
 
 
@@ -209,6 +248,17 @@ CREATE TABLE public.tickets (
     last_seq integer DEFAULT 0 NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
+    queue_id uuid,
+    priority text DEFAULT 'p3'::text NOT NULL,
+    assignee_id uuid,
+    lock_version integer DEFAULT 0 NOT NULL,
+    escalation_trigger text,
+    escalation_reason text,
+    escalated_at timestamp with time zone,
+    first_response_due_at timestamp with time zone,
+    first_human_response_at timestamp with time zone,
+    handoff_brief jsonb,
+    awaiting_agent_since timestamp with time zone,
     CONSTRAINT tickets_channel_valid CHECK ((channel = ANY (ARRAY['app_chat'::text, 'whatsapp'::text, 'email'::text]))),
     CONSTRAINT tickets_mode_valid CHECK ((mode = ANY (ARRAY['ai'::text, 'pending_human'::text, 'human'::text, 'closed'::text])))
 );
@@ -307,11 +357,35 @@ ALTER TABLE ONLY public.outbox_events
 
 
 --
+-- Name: priority_levels priority_levels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.priority_levels
+    ADD CONSTRAINT priority_levels_pkey PRIMARY KEY (code);
+
+
+--
 -- Name: processed_events processed_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.processed_events
     ADD CONSTRAINT processed_events_pkey PRIMARY KEY (consumer_name, event_id);
+
+
+--
+-- Name: queue_memberships queue_memberships_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.queue_memberships
+    ADD CONSTRAINT queue_memberships_pkey PRIMARY KEY (user_id, queue_id);
+
+
+--
+-- Name: queues queues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.queues
+    ADD CONSTRAINT queues_pkey PRIMARY KEY (id);
 
 
 --
@@ -402,6 +476,48 @@ CREATE INDEX index_outbox_events_pending ON public.outbox_events USING btree (id
 
 
 --
+-- Name: index_queue_memberships_on_queue_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_queue_memberships_on_queue_id ON public.queue_memberships USING btree (queue_id);
+
+
+--
+-- Name: index_queues_on_brand_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_queues_on_brand_id ON public.queues USING btree (brand_id);
+
+
+--
+-- Name: index_queues_on_slug; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_queues_on_slug ON public.queues USING btree (slug);
+
+
+--
+-- Name: index_queues_one_default_per_brand; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_queues_one_default_per_brand ON public.queues USING btree (brand_id) WHERE "default";
+
+
+--
+-- Name: index_tickets_awaiting_agent; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_tickets_awaiting_agent ON public.tickets USING btree (awaiting_agent_since) WHERE ((mode = 'ai'::text) AND (awaiting_agent_since IS NOT NULL));
+
+
+--
+-- Name: index_tickets_on_assignee_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_tickets_on_assignee_id ON public.tickets USING btree (assignee_id);
+
+
+--
 -- Name: index_tickets_on_brand_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -413,6 +529,13 @@ CREATE INDEX index_tickets_on_brand_id ON public.tickets USING btree (brand_id);
 --
 
 CREATE UNIQUE INDEX index_tickets_one_open_per_customer_channel ON public.tickets USING btree (brand_id, customer_id, channel) WHERE (mode <> 'closed'::text);
+
+
+--
+-- Name: index_tickets_waiting_for_human; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_tickets_waiting_for_human ON public.tickets USING btree (queue_id, first_response_due_at) WHERE ((mode = 'pending_human'::text) AND (assignee_id IS NULL));
 
 
 --
@@ -447,6 +570,14 @@ ALTER TABLE ONLY public.tickets
 
 
 --
+-- Name: queues fk_rails_2167254322; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.queues
+    ADD CONSTRAINT fk_rails_2167254322 FOREIGN KEY (brand_id) REFERENCES public.brands(id);
+
+
+--
 -- Name: conversation_events fk_rails_2bc24c46db; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -463,11 +594,43 @@ ALTER TABLE ONLY public.tickets
 
 
 --
+-- Name: tickets fk_rails_5ce8e37f94; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT fk_rails_5ce8e37f94 FOREIGN KEY (queue_id) REFERENCES public.queues(id);
+
+
+--
+-- Name: tickets fk_rails_8934a030fe; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT fk_rails_8934a030fe FOREIGN KEY (priority) REFERENCES public.priority_levels(code);
+
+
+--
+-- Name: queue_memberships fk_rails_8fc4c273aa; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.queue_memberships
+    ADD CONSTRAINT fk_rails_8fc4c273aa FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: conversation_events fk_rails_9edaa1a04d; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.conversation_events
     ADD CONSTRAINT fk_rails_9edaa1a04d FOREIGN KEY (ticket_id) REFERENCES public.tickets(id);
+
+
+--
+-- Name: queue_memberships fk_rails_bb0278c935; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.queue_memberships
+    ADD CONSTRAINT fk_rails_bb0278c935 FOREIGN KEY (queue_id) REFERENCES public.queues(id);
 
 
 --
@@ -487,6 +650,14 @@ ALTER TABLE ONLY public.customers
 
 
 --
+-- Name: tickets fk_rails_ea25a37fb1; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT fk_rails_ea25a37fb1 FOREIGN KEY (assignee_id) REFERENCES public.users(id);
+
+
+--
 -- Name: inbound_events fk_rails_ea57aae112; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -501,6 +672,7 @@ ALTER TABLE ONLY public.inbound_events
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261115000004'),
 ('20261115000003'),
 ('20261115000002'),
 ('20261115000001');

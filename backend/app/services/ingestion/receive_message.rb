@@ -37,7 +37,11 @@ module Ingestion
         ticket.record_event!(kind: "ticket.opened", actor: "customer", data: { channel: @channel }) if opened
         ticket.record_event!(kind: "message.received", actor: "customer",
                              data: { message_id: message.id, seq: message.seq })
-        AgentEvents.message_created!(ticket: ticket, message: message) if ticket.ai?
+        if ticket.ai?
+          AgentEvents.message_created!(ticket: ticket, message: message)
+          # O vigia do agente conta a espera a partir da mensagem mais antiga ainda sem resposta.
+          ticket.update!(awaiting_agent_since: message.created_at) if ticket.awaiting_agent_since.nil?
+        end
 
         Result.new(ticket: ticket, message: message, duplicate: false)
       end

@@ -4,9 +4,10 @@ Plataforma de help desk AI-first, multi marca, feita como projeto acadêmico (In
 Recebe mensagens de canais simulados, tria em filas configuráveis, integra um agente de IA simulado por
 webhook, broker e Kafka, e escala para analistas humanos com resumo e contexto. Só dados sintéticos.
 
-O projeto está **em construção**. Hoje uma mensagem já faz o caminho completo, sem telas: entra por um
-webhook de canal, vira ticket, chega ao agente simulado e a resposta volta e fica gravada no ticket.
-Filas, handoff, painel e interface ainda não existem.
+O projeto está **em construção**. Hoje, sem telas: uma mensagem entra por um webhook de canal, vira ticket,
+chega ao agente simulado e a resposta volta ao ticket; o agente pode escalar, a plataforma escala sozinha se
+ele ficar em silêncio, e um analista puxa o ticket mais urgente da fila. Regras de fila configuráveis,
+painel e interface ainda não existem.
 
 ```
 canal -> api (Postgres + outbox) -> relay -> webhook assinado -> broker -> Kafka -> agente simulado
@@ -25,11 +26,18 @@ Sobe Postgres, Redis, Kafka (KRaft, um nó), a API Rails, o relay do outbox, o b
 A API responde em `http://localhost:3000/up`. Para trocar a porta, os segredos ou as credenciais locais,
 copie `.env.example` para `.env`.
 
-Para ver uma mensagem fazer o caminho inteiro, com a pilha no ar:
+Para ver os caminhos principais funcionando, com a pilha no ar:
 
 ```bash
 docker compose exec api bundle exec rails smoke:round_trip
 ```
+
+```bash
+docker compose exec api bundle exec rails smoke:escalation
+```
+
+O primeiro mostra o agente respondendo. O segundo mostra o agente escalando, um analista puxando o ticket,
+respondendo dentro do prazo e fechando.
 
 ## Como testar
 

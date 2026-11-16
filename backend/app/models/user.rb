@@ -2,6 +2,9 @@
 class User < ApplicationRecord
   ROLES = %w[customer analyst ops bot].freeze
 
+  has_many :queue_memberships
+  has_many :queues, through: :queue_memberships
+
   def self.digest(token)
     Digest::SHA256.hexdigest(token.to_s)
   end
@@ -13,4 +16,8 @@ class User < ApplicationRecord
   end
 
   def bot? = role == "bot"
+  def analyst? = role == "analyst"
+
+  # Marcas que o analista atende, pelas filas de que faz parte.
+  def brand_ids = queues.distinct.pluck(:brand_id)
 end

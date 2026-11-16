@@ -5,6 +5,10 @@ gem "pg", "~> 1.7"
 gem "puma", "~> 8.1"
 gem "bootsnap", require: false
 
+# Jobs em segundo plano (ADR 0002, D3) e jobs periódicos, como o vigia do agente (ADR 0004, H5).
+gem "sidekiq", "~> 8.1"
+gem "sidekiq-cron", "~> 2.4"
+
 group :development, :test do
   gem "debug", platforms: %i[ mri ], require: "debug/prelude"
   gem "rspec-rails", "~> 8.1"
