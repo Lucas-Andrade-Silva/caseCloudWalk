@@ -1,0 +1,18 @@
+source "https://rubygems.org"
+
+gem "rails", "~> 8.1.4", ">= 8.1.4.1"
+gem "pg", "~> 1.7"
+gem "puma", "~> 8.1"
+gem "bootsnap", require: false
+
+# Kafka: produtores (WaterDrop) e consumidores. Decisão D3 do ADR 0002.
+gem "karafka", "~> 2.6"
+
+group :development, :test do
+  gem "debug", platforms: %i[ mri ], require: "debug/prelude"
+  gem "rspec-rails", "~> 8.1"
+
+  gem "bundler-audit", require: false
+  gem "brakeman", require: false
+  gem "rubocop-rails-omakase", require: false
+end
