@@ -97,11 +97,6 @@ GEM
     drb (2.2.3)
     erb (6.0.7)
     erubi (1.13.1)
-    ffi (1.17.4-aarch64-linux-gnu)
-    ffi (1.17.4-aarch64-linux-musl)
-    ffi (1.17.4-arm64-darwin)
-    ffi (1.17.4-x86_64-linux-gnu)
-    ffi (1.17.4-x86_64-linux-musl)
     globalid (1.4.0)
       activesupport (>= 6.1)
     i18n (1.15.2)
@@ -113,34 +108,6 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (3.1.0)
-    karafka (2.6.1)
-      karafka-core (>= 2.6.2, < 2.7.0)
-      karafka-rdkafka (>= 0.28.0)
-      waterdrop (>= 2.10.2, < 3.0.0)
-      zeitwerk (~> 2.3)
-    karafka-core (2.6.8)
-      karafka-rdkafka (>= 0.20.0)
-      logger (>= 1.6.0)
-    karafka-rdkafka (0.32.0-aarch64-linux-gnu)
-      ffi (~> 1.17.1)
-      json (> 2.0)
-      logger
-    karafka-rdkafka (0.32.0-aarch64-linux-musl)
-      ffi (~> 1.17.1)
-      json (> 2.0)
-      logger
-    karafka-rdkafka (0.32.0-arm64-darwin)
-      ffi (~> 1.17.1)
-      json (> 2.0)
-      logger
-    karafka-rdkafka (0.32.0-x86_64-linux-gnu)
-      ffi (~> 1.17.1)
-      json (> 2.0)
-      logger
-    karafka-rdkafka (0.32.0-x86_64-linux-musl)
-      ffi (~> 1.17.1)
-      json (> 2.0)
-      logger
     language_server-protocol (3.17.0.6)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -308,10 +275,6 @@ GEM
     unicode-emoji (4.3.0)
     uri (1.1.2)
     useragent (0.16.11)
-    waterdrop (2.10.10)
-      karafka-core (>= 2.5.12, < 3.0.0)
-      karafka-rdkafka (>= 0.32.0)
-      zeitwerk (~> 2.3)
     websocket-driver (0.8.2)
       base64
       websocket-extensions (>= 0.1.0)
@@ -331,7 +294,6 @@ DEPENDENCIES
   brakeman
   bundler-audit
   debug
-  karafka (~> 2.6)
   pg (~> 1.7)
   puma (~> 8.1)
   rails (~> 8.1.4, >= 8.1.4.1)

@@ -4,8 +4,14 @@ Plataforma de help desk AI-first, multi marca, feita como projeto acadêmico (In
 Recebe mensagens de canais simulados, tria em filas configuráveis, integra um agente de IA simulado por
 webhook, broker e Kafka, e escala para analistas humanos com resumo e contexto. Só dados sintéticos.
 
-O projeto está **em construção**. Hoje existe a fundação técnica: o caminho Postgres (outbox) → relay →
-Kafka → consumidor idempotente, coberto por testes. As funcionalidades de produto ainda não existem.
+O projeto está **em construção**. Hoje uma mensagem já faz o caminho completo, sem telas: entra por um
+webhook de canal, vira ticket, chega ao agente simulado e a resposta volta e fica gravada no ticket.
+Filas, handoff, painel e interface ainda não existem.
+
+```
+canal -> api (Postgres + outbox) -> relay -> webhook assinado -> broker -> Kafka -> agente simulado
+agente simulado -> Kafka -> broker -> api (como usuário bot)
+```
 
 ## Como rodar
 
@@ -15,17 +21,33 @@ Requisito único: Docker (Desktop no Windows e no macOS) em execução. Não é 
 docker compose up -d --build
 ```
 
-Sobe Postgres, Redis, Kafka (KRaft, um nó), a API Rails e o relay do outbox. A API responde em
-`http://localhost:3000/up`. Para trocar a porta ou as credenciais locais, copie `.env.example` para `.env`.
+Sobe Postgres, Redis, Kafka (KRaft, um nó), a API Rails, o relay do outbox, o broker e o agente simulado.
+A API responde em `http://localhost:3000/up`. Para trocar a porta, os segredos ou as credenciais locais,
+copie `.env.example` para `.env`.
+
+Para ver uma mensagem fazer o caminho inteiro, com a pilha no ar:
+
+```bash
+docker compose exec api bundle exec rails smoke:round_trip
+```
 
 ## Como testar
+
+Um gate por componente:
 
 ```bash
 docker compose run --rm test
 ```
 
-Este é o gate oficial do backend. Os testes usam o Postgres e o Kafka reais do Compose; nenhum chama rede
-externa nem LLM.
+```bash
+docker compose run --rm broker-test
+```
+
+```bash
+docker compose run --rm mock-agent-test
+```
+
+Os testes usam o Postgres e o Kafka reais do Compose; nenhum chama rede externa nem LLM.
 
 ## Onde está cada coisa
 

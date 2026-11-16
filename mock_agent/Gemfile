@@ -1,0 +1,8 @@
+source "https://rubygems.org"
+
+# Kafka: consome as mensagens da plataforma e produz as respostas.
+gem "karafka", "~> 2.6"
+
+group :development, :test do
+  gem "rspec", "~> 3.13"
+end

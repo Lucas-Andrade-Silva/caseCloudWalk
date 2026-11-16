@@ -26,6 +26,9 @@ Rails.application.configure do
   # Change to :null_store to avoid any caching.
   config.cache_store = :memory_store
 
+  # Dentro da rede do Compose, o broker chama a plataforma pelo nome do serviço.
+  config.hosts << "api"
+
   # Tudo roda em containers: o log vai para a saída padrão e aparece em `docker compose logs`.
   $stdout.sync = true
   config.logger = ActiveSupport::TaggedLogging.logger($stdout)

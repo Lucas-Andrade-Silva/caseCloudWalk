@@ -16,5 +16,7 @@ RSpec.configure do |config|
   # Cada teste roda numa transação desfeita no fim. Testes que precisam de conexões reais
   # (concorrência, Kafka) desligam isso no próprio grupo e limpam o que gravaram.
   config.use_transactional_fixtures = true
+  # spec/requests vira teste de requisição (get, post, response) pelo caminho do arquivo.
+  config.infer_spec_type_from_file_location!
   config.filter_rails_from_backtrace!
 end
