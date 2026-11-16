@@ -1,12 +1,12 @@
 module Outbox
-  # Publica no Kafka os eventos pendentes do outbox, em ordem de id.
+  # Entrega ao broker os eventos pendentes do outbox, em ordem de id.
   #
   # A entrega é at-least-once: se o processo cair depois de publicar e antes de marcar, o evento
   # sai de novo, e o consumidor descarta a duplicata pelo event_id (ver Inbox).
   class Relay
     DEFAULT_BATCH_SIZE = 100
 
-    def initialize(producer: Karafka.producer, batch_size: DEFAULT_BATCH_SIZE)
+    def initialize(producer: WebhookPublisher.new, batch_size: DEFAULT_BATCH_SIZE)
       @producer = producer
       @batch_size = batch_size
     end

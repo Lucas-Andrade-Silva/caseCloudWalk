@@ -1,9 +1,17 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
+# Dados mínimos para a plataforma funcionar. Idempotente: pode rodar a cada subida.
 #
-# Example:
-#
-#   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
-#     MovieGenre.find_or_create_by!(name: genre_name)
-#   end
+# O banco de teste fica vazio: cada teste cria o que precisa. (O db:prepare chama os seeds ao criar
+# um banco novo, e marcas pré-gravadas colidiriam com as que os testes criam.)
+return if Rails.env.test?
+
+[ %w[infinitepay InfinitePay], %w[jim JIM] ].each do |slug, name|
+  Brand.find_or_create_by!(slug: slug) { |brand| brand.name = name }
+end
+
+# O agente de IA entra como usuário bot. O token vem do ambiente; só o hash vai para o banco.
+if (token = ENV["BOT_API_TOKEN"].presence)
+  User.find_or_create_by!(token_digest: User.digest(token)) do |user|
+    user.name = "Agente de IA"
+    user.role = "bot"
+  end
+end
