@@ -51,6 +51,19 @@ e operadores vêm do catálogo do backend (`GET /api/ops/rules/catalog`), sem c�
 **I11. A tela de filas também gerencia as equipes**: criar e renomear filas, trocar a equipe dona, criar
 equipes e adicionar ou remover analistas (`GET /api/ops/analysts`).
 
+## Mapa vivo (dono, 2026-11-17)
+
+**I12. Cluster do mapa: a primeira tag do ticket**, na ordem em que a regra a declarou. Ticket sem tag
+agrupa pela fila; sem fila, pela marca. (Completa o I4.)
+
+**I13. Tempo real por ActionCable com Redis em todos os ambientes.** O adaptador `async` só alcança o
+próprio processo, e eventos nascem também no Sidekiq (vigia do agente). O Ticket publica no canal da marca
+depois de cada commit; o navegador agrupa os eventos a cada ~250 ms e, sem conexão, volta ao polling de
+5 s. O token vai no subprotocolo do WebSocket, nunca na URL (URLs acabam em logs). Cliente WebSocket
+próprio e pequeno, porque o cliente oficial não deixa escolher o subprotocolo. Nova gem: `redis` 6.0.
+
+**Em aberto:** limites do alerta de incidente (cluster que cresce X tickets em N minutos).
+
 ## Dependências e versões
 
 Versões exatas, cada uma publicada há pelo menos 14 dias na data da escolha (risco de cadeia de

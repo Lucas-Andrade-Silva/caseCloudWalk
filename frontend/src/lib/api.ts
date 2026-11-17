@@ -117,6 +117,9 @@ export async function request<T>(token: string, path: string, init: { method?: s
 }
 
 export const fetchMe = (token: string) => request<Me>(token, "/api/me");
+
+/** Retrato inicial do mapa vivo: tickets abertos das marcas que a pessoa enxerga. */
+export const fetchMap = <T>(token: string) => request<{ total: number; limit: number; tickets: T[] }>(token, "/api/map");
 export const fetchWork = (token: string) => request<Work>(token, "/api/work");
 export const fetchTicket = (token: string, id: string) => request<TicketDetail>(token, `/api/tickets/${id}`);
 

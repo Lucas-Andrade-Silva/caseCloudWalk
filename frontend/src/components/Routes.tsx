@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { Me } from "../lib/api";
 import { isCustomerRoute, navigate, useHashRoute } from "../lib/useHashRoute";
 import { AnalystWorkspace } from "../screens/analyst/AnalystWorkspace";
+import { LiveMap } from "../screens/map/LiveMap";
 import { OpsWorkspace } from "../screens/ops/OpsWorkspace";
 
 const HOME: Record<Me["role"], string> = { analyst: "/fila", ops: "/operacao" };
@@ -22,15 +23,7 @@ export function Routes({ me, token }: { me: Me; token: string }) {
   }, [known, me.role]);
 
   if (isAnalystQueue) return <AnalystWorkspace token={token} />;
-  if (route === "/mapa") return <Upcoming text="O mapa vivo entra numa próxima etapa." />;
+  if (route === "/mapa") return <LiveMap token={token} me={me} />;
   if (isOps) return <OpsWorkspace token={token} route={route} />;
   return null;
-}
-
-function Upcoming({ text }: { text: string }) {
-  return (
-    <div className="flex flex-1 items-center justify-center">
-      <p className="text-sm text-faint">{text}</p>
-    </div>
-  );
 }

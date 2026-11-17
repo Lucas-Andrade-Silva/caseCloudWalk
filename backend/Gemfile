@@ -8,6 +8,8 @@ gem "bootsnap", require: false
 # Jobs em segundo plano (ADR 0002, D3) e jobs periódicos, como o vigia do agente (ADR 0004, H5).
 gem "sidekiq", "~> 8.1"
 gem "sidekiq-cron", "~> 2.4"
+# Adaptador Redis do ActionCable: o mapa vivo recebe eventos da API e do Sidekiq (ADR 0007, I13).
+gem "redis", "6.0.0"
 
 group :development, :test do
   gem "debug", platforms: %i[ mri ], require: "debug/prelude"
