@@ -1,4 +1,6 @@
+import type { ReactNode } from "react";
 import type { Me, Role } from "../lib/api";
+import { useHashRoute } from "../lib/useHashRoute";
 
 const NAVIGATION: Record<Role, { label: string; href: string }[]> = {
   analyst: [
@@ -16,9 +18,11 @@ const ROLE_LABELS: Record<Role, string> = { analyst: "Analista", ops: "Operaçã
 interface ShellProps {
   me: Me;
   onSignOut: () => void;
+  children: ReactNode;
 }
 
-export function Shell({ me, onSignOut }: ShellProps) {
+export function Shell({ me, onSignOut, children }: ShellProps) {
+  const route = useHashRoute();
   const brands = me.brands.length > 0 ? ` · ${me.brands.join(", ")}` : "";
 
   return (
@@ -28,15 +32,21 @@ export function Shell({ me, onSignOut }: ShellProps) {
           <p className="text-xs font-medium tracking-widest text-muted uppercase">Help Desk</p>
         </div>
         <nav aria-label="Principal" className="flex-1 px-2">
-          {NAVIGATION[me.role].map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="flex h-8 items-center rounded-md px-2 text-sm text-muted hover:bg-elevated hover:text-text"
-            >
-              {item.label}
-            </a>
-          ))}
+          {NAVIGATION[me.role].map((item) => {
+            const active = route === item.href.slice(1) || route.startsWith(`${item.href.slice(1)}/`);
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex h-8 items-center rounded-md px-2 text-sm hover:bg-elevated hover:text-text ${
+                  active ? "bg-elevated text-text" : "text-muted"
+                }`}
+              >
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
         <div className="border-t border-line px-4 py-3">
           <p className="text-sm">{me.name}</p>
@@ -49,9 +59,7 @@ export function Shell({ me, onSignOut }: ShellProps) {
           </button>
         </div>
       </aside>
-      <main className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted">Escolha uma área no menu.</p>
-      </main>
+      <main className="flex min-w-0 flex-1">{children}</main>
     </div>
   );
 }
