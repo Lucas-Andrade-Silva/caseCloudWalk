@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Routes } from "./components/Routes";
 import { Shell } from "./components/Shell";
 import { SignIn } from "./components/SignIn";
 import { ApiError, fetchMe, type Me } from "./lib/api";
@@ -7,7 +8,7 @@ import { clearToken, loadToken, saveToken } from "./lib/session";
 type State =
   | { kind: "checking" }
   | { kind: "signed-out"; error: string | null; busy: boolean }
-  | { kind: "signed-in"; me: Me };
+  | { kind: "signed-in"; me: Me; token: string };
 
 function explain(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) return "Token inválido.";
@@ -24,7 +25,7 @@ export default function App() {
     try {
       const me = await fetchMe(token);
       saveToken(token);
-      setState({ kind: "signed-in", me });
+      setState({ kind: "signed-in", me, token });
     } catch (error) {
       clearToken();
       setState({ kind: "signed-out", error: explain(error), busy: false });
@@ -40,7 +41,7 @@ export default function App() {
     let active = true;
     fetchMe(stored).then(
       (me) => {
-        if (active) setState({ kind: "signed-in", me });
+        if (active) setState({ kind: "signed-in", me, token: stored });
       },
       (error: unknown) => {
         if (!active) return;
@@ -77,6 +78,8 @@ export default function App() {
         clearToken();
         setState({ kind: "signed-out", error: null, busy: false });
       }}
-    />
+    >
+      <Routes me={state.me} token={state.token} />
+    </Shell>
   );
 }

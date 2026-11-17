@@ -14,6 +14,7 @@ Rails.application.routes.draw do
     get "me", to: "me#show"
 
     # Analista humano.
+    get "work", to: "work#index"
     post "work/next", to: "work#next"
     resources :tickets, only: :show do
       member do
