@@ -129,6 +129,29 @@ RSpec.describe "API de operação" do
     end
   end
 
+  describe "apoio às telas" do
+    it "lista os analistas com as equipes de cada um" do
+      call(:get, "/api/ops/analysts")
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq([
+        { "id" => User.find_by!(name: "Ana").id, "name" => "Ana", "teams" => [ "infinitepay-equipe" ] }
+      ])
+    end
+
+    it "publica o catálogo de fatos e operadores das regras" do
+      call(:get, "/api/ops/rules/catalog")
+
+      expect(response.parsed_body["facts"]).to include("amount" => "number", "message_text" => "text")
+      expect(response.parsed_body["operators"]).to include("number" => %w[eq gt gte lt lte], "text" => [ "contains_any" ])
+    end
+
+    it "exige a operação" do
+      call(:get, "/api/ops/analysts", headers: auth_as("Ana"))
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
   describe "exclusão da memória de um cliente" do
     def closed_ticket(brand_slug, provider_id)
       ticket = receive_message(brand_slug: brand_slug, provider_message_id: provider_id).ticket

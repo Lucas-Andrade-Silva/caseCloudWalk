@@ -4,6 +4,8 @@ import { Shell } from "./components/Shell";
 import { SignIn } from "./components/SignIn";
 import { ApiError, fetchMe, type Me } from "./lib/api";
 import { clearToken, loadToken, saveToken } from "./lib/session";
+import { isCustomerRoute, useHashRoute } from "./lib/useHashRoute";
+import { CustomerChat } from "./screens/customer/CustomerChat";
 
 type State =
   | { kind: "checking" }
@@ -16,7 +18,7 @@ function explain(error: unknown): string {
   return "Não foi possível falar com a plataforma. Tente de novo.";
 }
 
-export default function App() {
+function Platform() {
   const [state, setState] = useState<State>(() =>
     loadToken() ? { kind: "checking" } : { kind: "signed-out", error: null, busy: false },
   );
@@ -82,4 +84,11 @@ export default function App() {
       <Routes me={state.me} token={state.token} />
     </Shell>
   );
+}
+
+// O chat do cliente simulado fica fora da área logada (ADR 0007, I8); o resto da plataforma pede token.
+export default function App() {
+  const route = useHashRoute();
+  if (isCustomerRoute(route)) return <CustomerChat />;
+  return <Platform />;
 }

@@ -28,6 +28,29 @@ ainda não suporta a 7.
 `web-test` (gate), com `node_modules` em volume. O Vite repassa `/api` e `/webhooks` para a API, então não há
 CORS a configurar.
 
+## Chat do cliente simulado (dono, 2026-11-16)
+
+**I7. Simulador de canal no backend.** O navegador não guarda o segredo do webhook. Rotas `/api/simulator`
+fazem o papel do canal: enviam pela mesma ingestão do webhook (`Ingestion::ReceiveMessage`) e leem a conversa
+do cliente. Só existem com `CHANNEL_SIMULATOR_ENABLED=true` (ligada no Compose de desenvolvimento, desligada
+no piloto de produção); desligadas, respondem 404.
+
+**I8. Página própria, sem login**, em `#/cliente`, como um cliente abriria. Consequência aceita: com o
+simulador ligado, quem souber o identificador de um cliente sintético lê a conversa dele. Por isso a chave
+nunca é ligada fora de desenvolvimento e demonstração.
+
+**I9. Visual neutro**, no tema da plataforma, com marca e canal indicados. Não imita apps de terceiros.
+
+## Editor da operação (dono, 2026-11-16)
+
+**I10. Regras com construtor visual de um nível.** Cada regra é um cartão: nome, condições (todas ou
+qualquer uma; fato, operador e valor) e ações (fila, prioridade, tags), com a ordem ajustável (a primeira que
+casa vence). Regras com aninhamento mais fundo aparecem só para leitura e continuam editáveis pela API. Fatos
+e operadores vêm do catálogo do backend (`GET /api/ops/rules/catalog`), sem cópia no frontend.
+
+**I11. A tela de filas também gerencia as equipes**: criar e renomear filas, trocar a equipe dona, criar
+equipes e adicionar ou remover analistas (`GET /api/ops/analysts`).
+
 ## Dependências e versões
 
 Versões exatas, cada uma publicada há pelo menos 14 dias na data da escolha (risco de cadeia de

@@ -12,6 +12,11 @@ export function useHashRoute(): string {
   return useSyncExternalStore(subscribe, read);
 }
 
+/** Rota pública do chat do cliente simulado (ADR 0007, I8): fica fora da área logada. */
+export function isCustomerRoute(route: string): boolean {
+  return route === "/cliente" || route.startsWith("/cliente/");
+}
+
 export function navigate(path: string): void {
   if (read() === path) return;
   window.location.hash = path;

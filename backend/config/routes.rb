@@ -13,6 +13,10 @@ Rails.application.routes.draw do
     # Quem está usando a interface.
     get "me", to: "me#show"
 
+    # Canal simulado do chat do cliente (só com CHANNEL_SIMULATOR_ENABLED=true).
+    post "simulator/messages", to: "simulator#create"
+    get "simulator/conversation", to: "simulator#conversation"
+
     # Analista humano.
     get "work", to: "work#index"
     post "work/next", to: "work#next"
@@ -26,6 +30,8 @@ Rails.application.routes.draw do
 
     # Operação: equipes, filas e regras.
     namespace :ops do
+      get "analysts", to: "support#analysts"
+      get "rules/catalog", to: "support#rules_catalog"
       resources :teams, only: %i[index create]
       post "teams/:id/members", to: "teams#add_member"
       delete "teams/:id/members/:user_id", to: "teams#remove_member"

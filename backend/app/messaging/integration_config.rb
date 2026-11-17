@@ -7,6 +7,9 @@ module IntegrationConfig
   def broker_webhook_secret = list("BROKER_WEBHOOK_SECRETS").first
   def broker_webhook_url = ENV.fetch("BROKER_WEBHOOK_URL")
 
+  # Simulador de canal para o chat do cliente (ADR 0007, I7). Só em desenvolvimento e demonstração.
+  def channel_simulator_enabled? = ENV["CHANNEL_SIMULATOR_ENABLED"] == "true"
+
   def list(name)
     ENV.fetch(name, "").split(",").map(&:strip).reject(&:empty?)
   end

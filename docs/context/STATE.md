@@ -6,8 +6,8 @@ Atualizado em: 2026-11-16
 
 Construção em andamento. Fatias 01 a 05 e o piloto de carga commitados localmente (piloto:
 `docs/research/2026-11-16-piloto-de-carga.md`; API em 4 × 5; deadlock da ingestão corrigido).
-Fatia 06 (memória) e fundação da interface (ADR 0007) commitadas. **Painel do analista pronto e verificado
-ponta a ponta no navegador, sem commit.** Entrega até **2026-11-27**.
+Memória, interface, painel do analista e chat do cliente commitados. **Editor da operação (filas, equipes
+e regras com simulação e publicação) pronto e verificado na pilha real, sem commit.** Entrega até **2026-11-27**.
 Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM → experimento oficial e README.
 
 ## Onde está cada coisa
@@ -24,8 +24,8 @@ Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM �
 
 - Subir tudo: `docker compose up -d --build` (se só o código mudou, `docker compose up -d --force-recreate
   api` aplica migrações; reinicie `relay`, `sidekiq` e consumidores, que são processos longos).
-- **Gates** (2026-11-16, zero falhas): `docker compose run --rm` + `test` (plataforma, 170), `broker-test`
-  (21), `mock-agent-test` (20) e `web-test` (frontend: tipos, lint e 10 testes).
+- **Gates** (2026-11-16, zero falhas): `docker compose run --rm` + `test` (plataforma, 177), `broker-test`
+  (21), `mock-agent-test` (20) e `web-test` (frontend: tipos, lint e 29 testes).
 - **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
 - **Fumaça com a pilha no ar** (`docker compose exec api bundle exec rails <tarefa>`): `smoke:round_trip`,
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
@@ -36,7 +36,6 @@ Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM �
 - **Caos no mock:** `MOCK_CHAOS="latency_ms=200..2000,..." docker compose up -d --force-recreate mock-agent`.
 - **Falhas:** `outbox:dead`, `outbox:retry_dead[id]`, `outbox:discard_dead[id]` (plataforma) e
   `docker compose exec broker bin/dlq list|replay|purge` (respostas do agente).
-- Um arquivo: `docker compose run --rm test bundle exec rspec <spec>`; lint: `... test bundle exec rubocop`.
 
 ## O que existe no código
 
@@ -65,11 +64,12 @@ Caminho de uma mensagem (ADR 0003):
   `event_id`; `[escalar]` e `[responder]` forçam a decisão; modo caos por `MOCK_CHAOS`.
 - `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada por token (`GET /api/me`), casca por
   papel e **painel do analista** (`GET /api/work`; pegar o próximo, conversa, brief, memória, responder,
-  fechar com resolução). Atualiza por polling (5 s a lista, 3 s a conversa); ActionCable ainda não.
-- Seeds de desenvolvimento (não sobrescrevem): equipes, filas e regras v1 das duas marcas; analistas Ana,
-  Bruno e Carla (`dev-analyst-<nome>`) e operação Olivia (`dev-ops-olivia`).
-- Ainda **não** existem: LLM, envio da resposta ao canal, ActionCable, chat do cliente, editor de filas,
-  mapa vivo, RLS, k6 e observabilidade.
+  fechar com resolução), **chat do cliente** em `#/cliente`, sem login, via `/api/simulator` (só com
+  `CHANNEL_SIMULATOR_ENABLED=true`, ADR 0007 I7–I9) e **operação** em `#/operacao` (filas, equipes,
+  membros) e `#/operacao/regras` (construtor de um nível, I10). Dados por polling (sem ActionCable); o Vite
+  vigia arquivos por polling (`VITE_USE_POLLING`), porque no Windows o container não recebe eventos.
+- Seeds de dev: equipes, filas e regras v1; analistas Ana, Bruno, Carla (`dev-analyst-<nome>`), ops Olivia.
+- Ainda **não** existem: LLM, canais reais, ActionCable, mapa vivo, RLS, k6 e observabilidade.
 
 ## Verdades vigentes
 
@@ -84,25 +84,24 @@ Caminho de uma mensagem (ADR 0003):
 
 - Branches empilhadas: `docs/project-playbook` → `chore/platform-foundation` → `feat/agent-integration` →
   `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` → `test/production-pilot` →
-  `feat/customer-memory` → `feat/frontend-foundation` → `feat/analyst-panel` (sem commit).
+  `feat/customer-memory` → `feat/frontend-foundation` → `feat/analyst-panel` → `feat/customer-chat` → `feat/ops-editor` (sem commit).
 - Só `docs/project-playbook` está no remoto. Nenhum PR aberto (a CLI `gh` não está autenticada).
 
 ## Próximos passos
 
-1. Commit do painel. Depois: chat do cliente simulado, editor de filas e regras, mapa vivo (antes, o dono
-   define sem tag e várias tags). Em seguida LLM, experimento oficial e README.
+1. Commit do editor. Depois: mapa vivo (antes, o dono define sem tag e várias tags). Em seguida LLM,
+   experimento oficial e README. Antes da demo: limpar os dados de desenvolvimento (ver riscos).
 2. PRs das branches, com revisão independente em outro chat.
 
 ## Pendências do dono
 
 - Confirmar R2 a R5 do ADR 0005 (regras em dois momentos, lista de fatos, versão como documento único,
   auditoria sem o texto) e os contratos das fatias 02 a 04.
-- Confirmar as marcas `[escalar]`/`[responder]` do mock e as escolhas da fatia 01.
-- Confirmar a proposta do ADR 0006 (forma do payload, exclusão que preserva tickets e mensagens).
+- Confirmar: marcas `[escalar]`/`[responder]` do mock, fatia 01, proposta do ADR 0006 (payload; exclusão
+  preserva tickets) e I5–I6 do ADR 0007 (TypeScript; frontend em container com proxy).
 - Desenho do enriquecimento por LLM agora que a plataforma não usa Kafka (ADR 0003, consequência de E1).
 - O dia 27 inclui a apresentação? Agrupar em cerca de 5 PRs? Linguagem da análise (Python assumido).
 - Mapa vivo por tags: onde fica ticket sem tag e como desempatar várias tags; limites do alerta.
-- Confirmar I5 (TypeScript) e I6 (frontend em container com proxy) do ADR 0007.
 
 ## Bloqueios e riscos
 
@@ -111,8 +110,9 @@ Caminho de uma mensagem (ADR 0003):
 - Ponta a ponta p99 em 10× ficou em 1.026 ms com a API em 4 × 5 e mock instantâneo (no limite da meta);
   com 1 × 3, o 10× degrada. 50× não testado.
 - Depois de uma queda do Postgres, o vigia escala os tickets atrasados (decidido); medir a fila humana.
-- As respostas do bot e do analista são gravadas, mas ainda não chegam ao canal nem a uma tela.
 - Outros programas desta máquina ocupam `[::1]:3000` (wslrelay) e `[::1]:5173` (Node): use `127.0.0.1`.
+- Banco de dev bagunçado para demo: equipes duplicadas (seeds sem filas × as da migração 0005, donas das
+  filas padrão) e dezenas de tickets atrasados com a Ana (o `smoke:escalation` esvazia a fila dela).
 - Ninguém é avisado quando o prazo de SLA humano estoura; só fica registrado na primeira resposta.
 - A extração de valor por expressão regular é limitada (não entende "cinco mil reais").
 - Não testado: máquina sem cache de imagens Docker, macOS e Linux.

@@ -43,7 +43,7 @@ describe("entrada na plataforma", () => {
   });
 
   it("mostra a navegação da operação", async () => {
-    fetchMock.mockImplementation(() => respond(200, olivia));
+    fetchMock.mockImplementation((path: string) => (path.startsWith("/api/ops/") ? respond(200, []) : respond(200, olivia)));
     render(<App />);
 
     await userEvent.type(screen.getByLabelText("Token de acesso"), "token-da-olivia");
@@ -51,7 +51,9 @@ describe("entrada na plataforma", () => {
 
     const nav = await screen.findByRole("navigation", { name: "Principal" });
     expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Filas e regras", "Mapa vivo"]);
-    expect(screen.getByText("O editor de filas e regras entra numa próxima etapa.")).toBeInTheDocument();
+    expect(await screen.findByRole("form", { name: "Nova fila" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Regras" })).toHaveAttribute("href", "#/operacao/regras");
+    expect(window.location.hash).toBe("#/operacao");
   });
 
   it("avisa quando o token não vale e continua na entrada", async () => {
@@ -75,6 +77,29 @@ describe("entrada na plataforma", () => {
     expect(fetchMock.mock.calls[0]?.[1]).toEqual({
       headers: { Accept: "application/json", Authorization: "Bearer dev-analyst-ana" },
     });
+  });
+
+  it("abre o chat do cliente sem pedir login", async () => {
+    window.location.hash = "#/cliente";
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: "Começar conversa" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Token de acesso")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("abre o chat do cliente mesmo com uma sessão de analista aberta no navegador", async () => {
+    window.localStorage.setItem("helpdesk.token", "token-da-ana");
+    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "Pegar o próximo" })).toBeInTheDocument();
+
+    window.location.hash = "#/cliente";
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+    expect(await screen.findByRole("button", { name: "Começar conversa" })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(window.location.hash).toBe("#/cliente");
   });
 
   it("volta com a sessão guardada e sai limpando tudo", async () => {
