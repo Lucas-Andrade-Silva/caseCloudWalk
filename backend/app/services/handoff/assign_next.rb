@@ -7,14 +7,19 @@ module Handoff
   class AssignNext
     def self.call(...) = new(...).call
 
+    # O que espera nas filas do analista, na ordem em que "pegar o próximo" entrega.
+    def self.waiting_for(analyst)
+      Ticket.where(mode: "pending_human", assignee_id: nil, queue_id: analyst.queues.select(:id))
+            .order(:first_response_due_at, :escalated_at, :id)
+    end
+
     def initialize(analyst:)
       @analyst = analyst
     end
 
     def call
       ApplicationRecord.transaction do
-        ticket = Ticket.where(mode: "pending_human", assignee_id: nil, queue_id: @analyst.queues.select(:id))
-                       .order(:first_response_due_at, :escalated_at, :id)
+        ticket = self.class.waiting_for(@analyst)
                        .lock("FOR UPDATE SKIP LOCKED")
                        .first
         next nil unless ticket

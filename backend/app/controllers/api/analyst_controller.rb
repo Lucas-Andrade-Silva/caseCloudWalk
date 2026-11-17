@@ -36,10 +36,13 @@ module Api
         channel: ticket.channel,
         queue: ticket.queue&.slug,
         priority: ticket.priority,
+        tags: ticket.tags,
+        customer: { external_id: ticket.customer.external_id, name: ticket.customer.name },
         assignee_id: ticket.assignee_id,
         handoff_epoch: ticket.handoff_epoch,
         escalated_at: ticket.escalated_at&.iso8601(3),
         first_response_due_at: ticket.first_response_due_at&.iso8601(3),
+        first_human_response_at: ticket.first_human_response_at&.iso8601(3),
         closed_at: ticket.closed_at&.iso8601(3),
         resolution_code: ticket.resolution_code,
         handoff_brief: ticket.handoff_brief

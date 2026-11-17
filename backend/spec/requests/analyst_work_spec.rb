@@ -12,6 +12,38 @@ RSpec.describe "Trabalho do analista" do
     create_analyst("Beto", brands: %w[infinitepay jim])
   end
 
+  describe "GET /api/work" do
+    it "lista os tickets do analista e os que esperam nas filas dele, na ordem de pegar o próximo" do
+      travel_to(noon)
+      later = escalated_ticket("c-depois", priority: "p3") # prazo 13:00
+      sooner = escalated_ticket("c-antes", priority: "p2") # prazo 12:15
+      escalated_ticket("c-jim", brand: "jim", priority: "p1") # fora das filas da Ana
+      mine = escalated_ticket("c-meu", priority: "p4")
+      mine.update!(mode: "human", assignee: User.find_by!(name: "Ana"))
+      mine.append_message!(sender: "analyst", body: "Oi, sou a Ana.")
+
+      get "/api/work", headers: auth_as("Ana")
+
+      expect(response).to have_http_status(:ok)
+      body = response.parsed_body
+      expect(body["waiting"].map { |t| t["id"] }).to eq([ sooner.id, later.id ])
+      expect(body["waiting_count"]).to eq(2)
+      expect(body["mine"].map { |t| t["id"] }).to eq([ mine.id ])
+      expect(body["mine"].first).to include(
+        "brand" => "infinitepay", "channel" => "whatsapp", "mode" => "human", "priority" => "p4",
+        "queue" => "infinitepay-atendimento", "tags" => [],
+        "customer" => { "external_id" => "c-meu", "name" => "Maria" },
+        "last_message" => include("sender" => "analyst", "text" => "Oi, sou a Ana.")
+      )
+      expect(body["waiting"].first["first_response_due_at"]).to eq((noon + 15.minutes).iso8601(3))
+    end
+
+    it "exige um analista" do
+      get "/api/work"
+      expect(response).to have_http_status(:unauthorized)
+    end
+  end
+
   describe "POST /api/work/next" do
     it "entrega o ticket de prazo mais próximo das filas do analista e o deixa com ele" do
       travel_to(noon)
@@ -195,7 +227,9 @@ RSpec.describe "Trabalho do analista" do
       expect(response).to have_http_status(:ok)
       body = response.parsed_body
       expect(body).to include("id" => ticket.id, "mode" => "pending_human", "brand" => "infinitepay",
-                              "queue" => "infinitepay-atendimento", "priority" => "p3")
+                              "queue" => "infinitepay-atendimento", "priority" => "p3", "tags" => [],
+                              "customer" => { "external_id" => "c-1", "name" => "Maria" },
+                              "first_human_response_at" => nil)
       expect(body["handoff_brief"]).to include("reason" => "teste")
       expect(body["messages"].map { |m| [ m["seq"], m["sender"] ] }).to eq([ [ 1, "customer" ] ])
       expect(body["events"].map { |e| e["kind"] }).to eq(%w[ticket.opened message.received ticket.escalated])

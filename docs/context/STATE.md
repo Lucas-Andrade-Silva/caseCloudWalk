@@ -6,8 +6,8 @@ Atualizado em: 2026-11-16
 
 Construção em andamento. Fatias 01 a 05 e o piloto de carga commitados localmente (piloto:
 `docs/research/2026-11-16-piloto-de-carga.md`; API em 4 × 5; deadlock da ingestão corrigido).
-Fatia 06 (memória, ADR 0006) commitada. **Interface começou (ADR 0007): fundação do frontend verde, sem
-commit** — entrada por token, navegação por papel e tema escuro. Entrega até **2026-11-27**.
+Fatia 06 (memória) e fundação da interface (ADR 0007) commitadas. **Painel do analista pronto e verificado
+ponta a ponta no navegador, sem commit.** Entrega até **2026-11-27**.
 Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM → experimento oficial e README.
 
 ## Onde está cada coisa
@@ -24,8 +24,8 @@ Ordem combinada com o dono: piloto → memória sem LLM → interface → LLM �
 
 - Subir tudo: `docker compose up -d --build` (se só o código mudou, `docker compose up -d --force-recreate
   api` aplica migrações; reinicie `relay`, `sidekiq` e consumidores, que são processos longos).
-- **Gates** (2026-11-16, zero falhas): `docker compose run --rm` + `test` (plataforma, 168), `broker-test`
-  (21), `mock-agent-test` (20) e `web-test` (frontend: tipos, lint e 5 testes).
+- **Gates** (2026-11-16, zero falhas): `docker compose run --rm` + `test` (plataforma, 170), `broker-test`
+  (21), `mock-agent-test` (20) e `web-test` (frontend: tipos, lint e 10 testes).
 - **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
 - **Fumaça com a pilha no ar** (`docker compose exec api bundle exec rails <tarefa>`): `smoke:round_trip`,
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
@@ -63,12 +63,13 @@ Caminho de uma mensagem (ADR 0003):
   tentativa. Dono dos tópicos da borda do agente.
 - `mock_agent/` (Ruby puro): responde ou escala (30%, `MOCK_ESCALATION_RATE`), determinístico pelo
   `event_id`; `[escalar]` e `[responder]` forçam a decisão; modo caos por `MOCK_CHAOS`.
-- `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada por token (`GET /api/me`) e casca com
-  navegação por papel. Telas ainda não existem.
+- `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada por token (`GET /api/me`), casca por
+  papel e **painel do analista** (`GET /api/work`; pegar o próximo, conversa, brief, memória, responder,
+  fechar com resolução). Atualiza por polling (5 s a lista, 3 s a conversa); ActionCable ainda não.
 - Seeds de desenvolvimento (não sobrescrevem): equipes, filas e regras v1 das duas marcas; analistas Ana,
   Bruno e Carla (`dev-analyst-<nome>`) e operação Olivia (`dev-ops-olivia`).
-- Ainda **não** existem: LLM, gatilhos por fatos de LLM, envio da resposta ao canal, ActionCable, telas,
-  RLS, k6 e observabilidade.
+- Ainda **não** existem: LLM, envio da resposta ao canal, ActionCable, chat do cliente, editor de filas,
+  mapa vivo, RLS, k6 e observabilidade.
 
 ## Verdades vigentes
 
@@ -83,14 +84,13 @@ Caminho de uma mensagem (ADR 0003):
 
 - Branches empilhadas: `docs/project-playbook` → `chore/platform-foundation` → `feat/agent-integration` →
   `feat/handoff-escalation` → `feat/rules-and-queues` → `feat/resilience` → `test/production-pilot` →
-  `feat/customer-memory` → `feat/frontend-foundation` (fundação da interface, sem commit).
+  `feat/customer-memory` → `feat/frontend-foundation` → `feat/analyst-panel` (sem commit).
 - Só `docs/project-playbook` está no remoto. Nenhum PR aberto (a CLI `gh` não está autenticada).
 
 ## Próximos passos
 
-1. Commit da fundação. Depois: painel do analista (fila, conversa, memória, fechar com resolução),
-   chat do cliente simulado, editor de filas e regras, mapa vivo (antes, o dono define sem tag e várias
-   tags). Em seguida LLM, experimento oficial e README.
+1. Commit do painel. Depois: chat do cliente simulado, editor de filas e regras, mapa vivo (antes, o dono
+   define sem tag e várias tags). Em seguida LLM, experimento oficial e README.
 2. PRs das branches, com revisão independente em outro chat.
 
 ## Pendências do dono
