@@ -57,6 +57,9 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
+  # Mapa vivo: só as origens listadas em ACTION_CABLE_ALLOWED_ORIGINS (separadas por vírgula) abrem WebSocket.
+  config.action_cable.allowed_request_origins = ENV.fetch("ACTION_CABLE_ALLOWED_ORIGINS", "").split(",").map(&:strip).reject(&:empty?)
+
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
   #   "example.com",     # Allow requests from example.com

@@ -1,5 +1,9 @@
+# Redis em todos os ambientes (ADR 0007, I13): eventos do mapa nascem na API e no Sidekiq, e o adaptador
+# async só alcança o próprio processo. Em teste, o adaptador de teste do Rails.
 development:
-  adapter: async
+  adapter: redis
+  url: <%= ENV.fetch("REDIS_URL") { "redis://localhost:6379/0" } %>
+  channel_prefix: helpdesk_development
 
 test:
   adapter: test

@@ -27,6 +27,9 @@ class Ticket < ApplicationRecord
   has_many :conversation_events
   has_one :closing_summary
 
+  # Mapa vivo (ADR 0007, I13): toda mudança confirmada vai para o canal da marca.
+  after_commit -> { Live::MapBroadcast.ticket_changed(self) }, on: %i[create update]
+
   # Como o analista resolveu o ticket (ADR 0006, M2).
   RESOLUTION_CODES = %w[resolved no_customer_response duplicate forwarded].freeze
   RESOLUTION_NOTE_MAX = 2000

@@ -1,6 +1,9 @@
 Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # Tempo real do mapa vivo (ADR 0007, I13).
+  mount ActionCable.server => "/cable"
+
   # Entrada dos canais simulados.
   post "webhooks/channels/:channel", to: "webhooks/channels#create"
 
@@ -12,6 +15,9 @@ Rails.application.routes.draw do
 
     # Quem está usando a interface.
     get "me", to: "me#show"
+
+    # Mapa vivo: retrato inicial; os eventos chegam pelo ActionCable em /cable.
+    get "map", to: "map#show"
 
     # Canal simulado do chat do cliente (só com CHANNEL_SIMULATOR_ENABLED=true).
     post "simulator/messages", to: "simulator#create"

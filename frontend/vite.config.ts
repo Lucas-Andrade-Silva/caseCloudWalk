@@ -16,6 +16,8 @@ export default defineConfig({
     proxy: {
       "/api": { target: apiTarget, changeOrigin: true },
       "/webhooks": { target: apiTarget, changeOrigin: true },
+      // WebSocket do mapa vivo (ActionCable).
+      "/cable": { target: apiTarget, ws: true, changeOrigin: true },
     },
   },
   test: {

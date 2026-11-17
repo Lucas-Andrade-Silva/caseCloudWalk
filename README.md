@@ -8,7 +8,8 @@ O projeto está **em construção**. Uma mensagem entra por um canal (webhook ou
 vira ticket, chega ao agente simulado e a resposta volta; o agente pode escalar, a plataforma escala sozinha
 se ele ficar em silêncio, e um analista puxa o ticket mais urgente no painel, conversa, vê o brief e a
 memória do cliente e fecha com a resolução. A operação configura equipes, filas e regras versionadas (com
-dry-run) por API; o editor de filas e o mapa vivo vêm em seguida.
+dry-run) pela tela da operação, e o mapa vivo (`#/mapa`) mostra os tickets abertos agrupados, entrando e
+saindo em tempo real.
 
 ```
 canal -> api (Postgres + outbox) -> relay -> webhook assinado -> broker -> Kafka -> agente simulado
