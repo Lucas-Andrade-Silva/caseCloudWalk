@@ -40,6 +40,8 @@ module Api
         handoff_epoch: ticket.handoff_epoch,
         escalated_at: ticket.escalated_at&.iso8601(3),
         first_response_due_at: ticket.first_response_due_at&.iso8601(3),
+        closed_at: ticket.closed_at&.iso8601(3),
+        resolution_code: ticket.resolution_code,
         handoff_brief: ticket.handoff_brief
       }
     end
