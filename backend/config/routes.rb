@@ -30,6 +30,8 @@ Rails.application.routes.draw do
 
     # Operação: equipes, filas e regras.
     namespace :ops do
+      get "analysts", to: "support#analysts"
+      get "rules/catalog", to: "support#rules_catalog"
       resources :teams, only: %i[index create]
       post "teams/:id/members", to: "teams#add_member"
       delete "teams/:id/members/:user_id", to: "teams#remove_member"
