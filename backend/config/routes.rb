@@ -13,6 +13,10 @@ Rails.application.routes.draw do
     # Quem está usando a interface.
     get "me", to: "me#show"
 
+    # Canal simulado do chat do cliente (só com CHANNEL_SIMULATOR_ENABLED=true).
+    post "simulator/messages", to: "simulator#create"
+    get "simulator/conversation", to: "simulator#conversation"
+
     # Analista humano.
     get "work", to: "work#index"
     post "work/next", to: "work#next"

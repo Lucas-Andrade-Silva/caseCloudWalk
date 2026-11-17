@@ -18,7 +18,10 @@ export function mockApi(handlers: Record<string, Handler>) {
     const body = typeof init.body === "string" ? JSON.parse(init.body) : undefined;
     calls.push({ method, path, body, headers: (init.headers ?? {}) as Record<string, string> });
 
-    const handler = handlers[`${method} ${path}`];
+    // Rota exata primeiro; depois, rota terminada em "*" casa por prefixo ("GET /api/x*").
+    const route = `${method} ${path}`;
+    const prefix = Object.keys(handlers).find((key) => key.endsWith("*") && route.startsWith(key.slice(0, -1)));
+    const handler = handlers[route] ?? (prefix ? handlers[prefix] : undefined);
     if (!handler) return new Response(JSON.stringify({ error: `sem rota de teste para ${method} ${path}` }), { status: 404 });
 
     const [status, payload] = handler(body);

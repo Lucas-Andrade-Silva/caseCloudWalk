@@ -4,11 +4,11 @@ Plataforma de help desk AI-first, multi marca, feita como projeto acadêmico (In
 Recebe mensagens de canais simulados, tria em filas configuráveis, integra um agente de IA simulado por
 webhook, broker e Kafka, e escala para analistas humanos com resumo e contexto. Só dados sintéticos.
 
-O projeto está **em construção**. Hoje, sem telas: uma mensagem entra por um webhook de canal, vira ticket,
-chega ao agente simulado e a resposta volta ao ticket; o agente pode escalar, a plataforma escala sozinha se
-ele ficar em silêncio, e um analista puxa o ticket mais urgente da fila. A operação configura equipes, filas
-e regras versionadas (com dry-run) por API. A memória do cliente acompanha cada atendimento. A interface
-está começando: hoje há a entrada e a navegação por papel; as telas vêm em seguida.
+O projeto está **em construção**. Uma mensagem entra por um canal (webhook ou o chat do cliente simulado),
+vira ticket, chega ao agente simulado e a resposta volta; o agente pode escalar, a plataforma escala sozinha
+se ele ficar em silêncio, e um analista puxa o ticket mais urgente no painel, conversa, vê o brief e a
+memória do cliente e fecha com a resolução. A operação configura equipes, filas e regras versionadas (com
+dry-run) por API; o editor de filas e o mapa vivo vêm em seguida.
 
 ```
 canal -> api (Postgres + outbox) -> relay -> webhook assinado -> broker -> Kafka -> agente simulado
@@ -25,7 +25,8 @@ docker compose up -d --build
 
 Sobe Postgres, Redis, Kafka (KRaft, um nó), a API Rails, o relay do outbox, o broker e o agente simulado.
 A API responde em `http://localhost:3000/up` e a interface em `http://127.0.0.1:5173` (em desenvolvimento,
-a tela de entrada oferece as pessoas de teste). Prefira `127.0.0.1` a `localhost`: se outro programa da
+a tela de entrada oferece as pessoas de teste). O cliente simulado conversa em `http://127.0.0.1:5173/#/cliente`,
+sem login: abra numa janela e o painel da analista em outra. Prefira `127.0.0.1` a `localhost`: se outro programa da
 máquina ocupar a mesma porta em IPv6, `localhost` cai nele. Para trocar portas, segredos ou credenciais
 locais, copie `.env.example` para `.env`.
 

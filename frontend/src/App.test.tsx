@@ -77,6 +77,29 @@ describe("entrada na plataforma", () => {
     });
   });
 
+  it("abre o chat do cliente sem pedir login", async () => {
+    window.location.hash = "#/cliente";
+    render(<App />);
+
+    expect(await screen.findByRole("button", { name: "Começar conversa" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Token de acesso")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("abre o chat do cliente mesmo com uma sessão de analista aberta no navegador", async () => {
+    window.localStorage.setItem("helpdesk.token", "token-da-ana");
+    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "Pegar o próximo" })).toBeInTheDocument();
+
+    window.location.hash = "#/cliente";
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+    expect(await screen.findByRole("button", { name: "Começar conversa" })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(window.location.hash).toBe("#/cliente");
+  });
+
   it("volta com a sessão guardada e sai limpando tudo", async () => {
     window.localStorage.setItem("helpdesk.token", "token-da-ana");
     fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
