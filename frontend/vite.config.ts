@@ -10,6 +10,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    // No Docker Desktop do Windows, mudanças feitas no disco do Windows não geram eventos dentro do
+    // container: sem polling, o Vite continua servindo o código antigo.
+    watch: process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 300 } : undefined,
     proxy: {
       "/api": { target: apiTarget, changeOrigin: true },
       "/webhooks": { target: apiTarget, changeOrigin: true },

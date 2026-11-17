@@ -13,6 +13,8 @@ x-production-env: &production-env
   # (docs/research/2026-11-16-piloto-de-carga.md). Com 1 x 3 o pico de 10x degrada.
   RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-5}
   WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+  # O simulador de canal não tem login; fora de desenvolvimento fica desligado (ADR 0007, I8).
+  CHANNEL_SIMULATOR_ENABLED: "false"
 
 services:
   api:
