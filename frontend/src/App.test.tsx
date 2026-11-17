@@ -43,7 +43,7 @@ describe("entrada na plataforma", () => {
   });
 
   it("mostra a navegação da operação", async () => {
-    fetchMock.mockImplementation(() => respond(200, olivia));
+    fetchMock.mockImplementation((path: string) => (path.startsWith("/api/ops/") ? respond(200, []) : respond(200, olivia)));
     render(<App />);
 
     await userEvent.type(screen.getByLabelText("Token de acesso"), "token-da-olivia");
@@ -51,7 +51,9 @@ describe("entrada na plataforma", () => {
 
     const nav = await screen.findByRole("navigation", { name: "Principal" });
     expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Filas e regras", "Mapa vivo"]);
-    expect(screen.getByText("O editor de filas e regras entra numa próxima etapa.")).toBeInTheDocument();
+    expect(await screen.findByRole("form", { name: "Nova fila" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Regras" })).toHaveAttribute("href", "#/operacao/regras");
+    expect(window.location.hash).toBe("#/operacao");
   });
 
   it("avisa quando o token não vale e continua na entrada", async () => {
