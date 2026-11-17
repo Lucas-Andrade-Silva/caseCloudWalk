@@ -71,16 +71,35 @@ export interface TicketDetail extends Omit<WorkItem, "last_message"> {
 export const RESOLUTION_CODES = ["resolved", "no_customer_response", "duplicate", "forwarded"] as const;
 export type ResolutionCode = (typeof RESOLUTION_CODES)[number];
 
+export interface FieldError {
+  path: string;
+  message: string;
+}
+
 export class ApiError extends Error {
   readonly status: number;
+  /** Erros de validação com o caminho do campo (respostas 422 da operação). */
+  readonly details: FieldError[];
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, details: FieldError[] = []) {
     super(message);
     this.status = status;
+    this.details = details;
   }
 }
 
-async function request<T>(token: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+function errorFrom(status: number, statusText: string, body: unknown): ApiError {
+  if (body && typeof body === "object") {
+    if ("errors" in body && Array.isArray(body.errors)) {
+      const details = body.errors as FieldError[];
+      return new ApiError(status, details.map((error) => `${error.path}: ${error.message}`).join("; "), details);
+    }
+    if ("error" in body) return new ApiError(status, String(body.error));
+  }
+  return new ApiError(status, statusText);
+}
+
+export async function request<T>(token: string, path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json", Authorization: `Bearer ${token}` };
   const options: RequestInit = { headers };
   if (init.method) options.method = init.method;
@@ -93,10 +112,7 @@ async function request<T>(token: string, path: string, init: { method?: string; 
   if (response.status === 204) return null as T;
 
   const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = body && typeof body === "object" && "error" in body ? String(body.error) : response.statusText;
-    throw new ApiError(response.status, message);
-  }
+  if (!response.ok) throw errorFrom(response.status, response.statusText, body);
   return body as T;
 }
 
