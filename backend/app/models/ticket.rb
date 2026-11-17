@@ -25,6 +25,11 @@ class Ticket < ApplicationRecord
   belongs_to :priority_level, foreign_key: :priority, optional: true
   has_many :messages
   has_many :conversation_events
+  has_one :closing_summary
+
+  # Como o analista resolveu o ticket (ADR 0006, M2).
+  RESOLUTION_CODES = %w[resolved no_customer_response duplicate forwarded].freeze
+  RESOLUTION_NOTE_MAX = 2000
 
   scope :open, -> { where.not(mode: "closed") }
 

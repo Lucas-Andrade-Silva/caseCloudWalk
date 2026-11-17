@@ -28,6 +28,8 @@ Rails.application.routes.draw do
       resources :queues, only: %i[index create update]
       get "brands/:brand/rule_sets", to: "rule_sets#index"
       post "brands/:brand/rule_sets", to: "rule_sets#create"
+      delete "brands/:brand/customers/:external_id/memory", to: "customer_memories#destroy",
+                                                            constraints: { external_id: %r{[^/]+} }
       resources :rule_sets, only: %i[show update] do
         member do
           post :publish

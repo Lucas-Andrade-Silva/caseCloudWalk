@@ -28,6 +28,19 @@ RSpec.describe "Entrada de canal (POST /webhooks/channels/:channel)" do
     expect(event.payload["message"]).to include("id" => message.id, "seq" => 1, "sender" => "customer",
                                                 "text" => "minha maquininha não liga")
     expect(event.payload["customer"]).to include("external_id" => "cust-42")
+    expect(event.payload["memory"]).to eq("window_days" => 90, "tickets" => [])
+  end
+
+  it "manda ao agente a memória dos contatos anteriores do cliente na marca" do
+    post_channel
+    previous = Ticket.sole
+    previous.update!(mode: "closed", closed_at: Time.current, resolution_code: "resolved")
+
+    post_channel("app_chat", channel_payload(provider_message_id: "app.1", text: "voltou a falhar"))
+
+    memory = OutboxEvent.order(:id).last.payload["memory"]
+    expect(memory["tickets"].map { |item| item.slice("ticket_id", "channel", "resolution_code") })
+      .to eq([ { "ticket_id" => previous.id, "channel" => "whatsapp", "resolution_code" => "resolved" } ])
   end
 
   it "junta a segunda mensagem do mesmo cliente, marca e canal no mesmo ticket" do

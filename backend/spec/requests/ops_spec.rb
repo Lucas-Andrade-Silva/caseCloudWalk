@@ -128,4 +128,44 @@ RSpec.describe "API de operação" do
       expect(credit.reload.priority).to eq("p3")
     end
   end
+
+  describe "exclusão da memória de um cliente" do
+    def closed_ticket(brand_slug, provider_id)
+      ticket = receive_message(brand_slug: brand_slug, provider_message_id: provider_id).ticket
+      ticket.update!(mode: "closed", closed_at: Time.current, resolution_code: "resolved")
+      ClosingSummary.create!(ticket: ticket, brand: ticket.brand, customer: ticket.customer, version: 1,
+                             source: "template", text: "resumo", expires_at: 90.days.from_now)
+      ticket
+    end
+
+    it "apaga os resumos, esquece os contatos anteriores e registra quem pediu, sem tocar na outra marca" do
+      closed_ticket("infinitepay", "wamid.1")
+      closed_ticket("infinitepay", "wamid.2")
+      jim = closed_ticket("jim", "wamid.jim")
+      travel 1.second
+
+      call(:delete, "/api/ops/brands/infinitepay/customers/cust-42/memory")
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq("summaries_deleted" => 2)
+      expect(ClosingSummary.pluck(:ticket_id)).to eq([ jim.id ])
+      customer = Customer.find_by!(brand: brand, external_id: "cust-42")
+      erasure = MemoryErasure.sole
+      expect(erasure).to have_attributes(brand: brand, customer: customer, summaries_deleted: 2,
+                                         requested_by: User.find_by!(name: "Olivia"))
+      again = receive_message(provider_message_id: "wamid.3").ticket
+      expect(Memory::Recall.call(ticket: again)[:tickets]).to eq([])
+      expect(Memory::Recall.call(ticket: receive_message(brand_slug: "jim", provider_message_id: "wamid.jim2").ticket)[:tickets].size).to eq(1)
+    end
+
+    it "responde 404 para marca ou cliente desconhecido e exige a operação" do
+      call(:delete, "/api/ops/brands/infinitepay/customers/ninguem/memory")
+      expect(response).to have_http_status(:not_found)
+      call(:delete, "/api/ops/brands/nenhuma/customers/cust-42/memory")
+      expect(response).to have_http_status(:not_found)
+      call(:delete, "/api/ops/brands/infinitepay/customers/cust-42/memory", headers: auth_as("Ana"))
+      expect(response).to have_http_status(:forbidden)
+      expect(MemoryErasure.count).to eq(0)
+    end
+  end
 end
