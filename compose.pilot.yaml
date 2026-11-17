@@ -1,0 +1,23 @@
+# Piloto de carga em modo de produção (sem recarga de código, eager load, logs de produção).
+# Roda como projeto separado, com banco e Kafka próprios, para não tocar nos dados de desenvolvimento:
+#
+#   API_PORT=3002 docker compose -p helpdesk-pilot -f compose.yaml -f compose.pilot.yaml up -d --build
+#
+# Só para dados sintéticos em máquina local: o SECRET_KEY_BASE abaixo não é segredo.
+x-production-env: &production-env
+  RAILS_ENV: production
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE:-pilot-only-not-a-secret-0123456789abcdef0123456789abcdef}
+  RAILS_FORCE_SSL: "false"
+  RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-warn}
+  # API com 4 processos de 5 threads: decisão do dono para o experimento oficial, a partir do piloto
+  # (docs/research/2026-11-16-piloto-de-carga.md). Com 1 x 3 o pico de 10x degrada.
+  RAILS_MAX_THREADS: ${RAILS_MAX_THREADS:-5}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+
+services:
+  api:
+    environment: *production-env
+  relay:
+    environment: *production-env
+  sidekiq:
+    environment: *production-env

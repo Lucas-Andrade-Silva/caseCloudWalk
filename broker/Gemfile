@@ -1,0 +1,11 @@
+source "https://rubygems.org"
+
+# Kafka: produtor (WaterDrop) e consumidor.
+gem "karafka", "~> 2.6"
+# Servidor HTTP do endpoint de webhook.
+gem "puma", "~> 8.1"
+gem "rack", "~> 3.1"
+
+group :development, :test do
+  gem "rspec", "~> 3.13"
+end

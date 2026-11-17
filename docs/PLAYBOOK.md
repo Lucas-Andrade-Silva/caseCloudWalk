@@ -3,7 +3,10 @@
 Manual de operação para qualquer sessão (Codex, Claude ou outro agente). Responde a: o que estamos
 construindo, como, com quais regras e o que fazer quando algo dá errado.
 
-- O **porquê** e as alternativas descartadas estão em `docs/decisions/0002-arquitetura-stack-e-escopo.md`.
+- O **porquê** e as alternativas descartadas estão em `docs/decisions/0002-arquitetura-stack-e-escopo.md` e
+  em `docs/decisions/0003-integracao-com-o-agente.md` (este corrige a ordem da integração com o agente) e
+  em `docs/decisions/0004-handoff-prioridade-e-atribuicao.md` (escalação, prioridades e atribuição) e
+  em `docs/decisions/0005-equipes-e-motor-de-regras.md` (equipes e execução das regras).
 - O **estado mutável** (onde estamos hoje) está em `docs/context/STATE.md`.
 - A pesquisa de origem está em `docs/research/2026-11-08-ideacao-arquitetura.md` (consulta, não leitura obrigatória).
 - Se este arquivo, o ADR, o `STATE.md` e o código divergirem: **pare e relate o conflito** ao dono.
@@ -14,7 +17,7 @@ construindo, como, com quais regras e o que fazer quando algo dá errado.
 
 **O que é.** Plataforma de help desk própria, AI-first, multi equipes e multi marcas (InfinitePay BR e
 JIM US) para a CloudWalk. Canais simulados (app, WhatsApp, e-mail) entram, são triados em filas
-configuráveis, vão a um agente de IA **simulado** por webhook + broker + Kafka, e escalam para analistas
+configuráveis, vão a um agente de IA **simulado** por webhook → broker → Kafka, e escalam para analistas
 humanos com resumo e contexto. Tudo auditado. Um experimento técnico prova robustez e escala.
 
 **Prazo.** Entrega até **2026-11-27**. Projeto individual, feito com IA em TDD. Dados só sintéticos.
@@ -44,7 +47,8 @@ humanos com resumo e contexto. Tudo auditado. Um experimento técnico prova robu
 | Mensageria/jobs | Apache Kafka (KRaft, 1 nó) + Karafka; Sidekiq/Redis só para jobs |
 | Regras de fila | JSON próprio, ordenado por marca, primeira que bate vence, versionado, com dry-run |
 | Operação | IA no primeiro nível; humano por escalação (3 gatilhos); sem devolução à IA na v1 |
-| Mock do agente | Determinístico com modo caos (Ruby, assumido) |
+| Integração | Plataforma → webhook assinado → broker (nosso, sem estado) → Kafka → agente; volta pelo inverso (ADR 0003) |
+| Mock do agente | Determinístico com modo caos, em Ruby |
 | LLM | Groq; adaptador com modos stub, replay e live; fatos de LLM nas regras, atrás de chave |
 | Multi-marca | `brand_id` em tudo + escopo na aplicação + RLS nas tabelas centrais |
 | Memória | Histórico estruturado + resumos de encerramento (expiram, excluíveis) |
@@ -212,25 +216,28 @@ A plataforma deve ser **super intuitiva**. O diferencial visual é o **mapa vivo
 
 ## 3. Arquitetura
 
-### 3.1 Fluxo (12 passos)
+### 3.1 Fluxo (12 passos, ordem do ADR 0003)
 
 1. Canal simulado → **Ingestão** (HMAC, dedupe por `(canal, provider_msg_id)`).
-2. Uma transação grava `inbound_events`, mensagem, ticket e **outbox**; só então responde 2xx.
+2. Uma transação grava `inbound_events`, mensagem, ticket, linha do tempo e **outbox**; só então responde 2xx.
 3. **Motor de regras** lê os fatos, atribui fila, prioridade e tags, e registra a decisão.
-4. **Relay** lê o outbox por `id` serial e publica em `helpdesk.messages`.
-5. **Broker** consome e entrega ao agente (mock).
-6. O agente responde em `agent.replies` com `in_reply_to_seq`, `agent_turn_id` e `handoff_epoch`.
-7. **Consumidor idempotente** confere `processed_events`, `seq` e `epoch`; grava a resposta se válida.
+4. **Relay** lê o outbox por `id` serial e entrega cada evento ao broker como **webhook assinado**.
+5. **Broker** (sem estado) valida a assinatura e publica em `helpdesk.messages`; só então responde 2xx.
+6. O agente (mock) consome e responde em `agent.replies` com `in_reply_to_seq`, `agent_turn_id` e `handoff_epoch`.
+7. O **broker** consome `agent.replies` e chama a **API da plataforma como usuário `bot`**. A plataforma confere
+   `processed_events` (pelo `agent_turn_id`), `seq` e `epoch`, e grava a resposta se válida.
 8. A resposta sai pelo outbox para o adaptador do canal e chega ao cliente.
-9. Caminho lateral: `ticket.created` → **enricher LLM** (PII redigida) → `ticket.enriched` → fatos para as regras.
+9. Caminho lateral do enriquecimento por LLM: **redesenhar na fatia de LLM** (o ADR 0003 tirou o Kafka da
+   plataforma; perguntar ao dono).
 10. Na escalação: `pending_human` → item de trabalho com dono → analista vê brief e histórico via ActionCable.
-11. **Vigia de SLA** (Sidekiq) escala conversa silenciosa ou sem dono.
+11. **Vigia de SLA** (Sidekiq) escala ticket silencioso ou sem dono.
 12. Operação edita regras (versão nova, dry-run, publicação). Falhas seguem retry-1 → retry-2 → DLQ.
 
 ### 3.2 Entidades (núcleo)
 
 `brands`, `teams`, `queues`, `users` (papéis: customer, analyst, ops, bot), `customers`,
-`conversations` (`mode`: ai | pending_human | human | closed; `handoff_epoch`; contador de `seq`),
+`tickets` (ticket e conversa são a mesma entidade; `mode`: ai | pending_human | human | closed;
+`handoff_epoch`; contador de `seq`; no máximo um aberto por cliente, marca e canal),
 `messages` (`seq`, direção, `provider_msg_id`), `inbound_events` (UNIQUE `(channel, provider_message_id)`),
 `outbox`, `processed_events`, `conversation_events` (append-only), `decisions` (auditoria),
 `rule_sets` e `rules` (versões imutáveis), `customer_memories` (resumo, tickets de origem, `expires_at`).
@@ -241,7 +248,7 @@ cost, fallback_used, overridden_by`. Guardar hash e referência redigida, nunca 
 
 ### 3.3 Kafka
 
-Tópicos: `helpdesk.messages` (chave `conversation_id`, header `brand_id`), `agent.replies`,
+Tópicos: `helpdesk.messages` (chave `ticket_id`, header `brand_id`), `agent.replies`,
 `ticket.created`, `ticket.enriched`, `*.retry-1`, `*.retry-2`, `*.dlq` (nomes ajustáveis).
 12 partições por padrão (parametrizável; partições ≥ réplicas de consumidor). Sem tópico por marca.
 A DLQ tem listar, purgar e reprocessar.
@@ -252,7 +259,8 @@ A DLQ tem listar, purgar e reprocessar.
 - Só um escritor por vez: o bot não escreve com `mode ≠ ai`; o humano só escreve após atribuição.
 - Escalação só termina quando existe item de trabalho **com dono**. Um reconciliador alerta o contrário.
 - Cada troca de dono incrementa `handoff_epoch`. Resposta do bot com `epoch` diferente ou `mode ≠ ai` é
-  **descartada e auditada**. Resposta com `in_reply_to_seq` defasado: política pendente (**perguntar ao dono**).
+  **descartada e auditada**. Resposta com `in_reply_to_seq` defasado é **entregue e sinalizada** como
+  atrasada (ADR 0003).
 - `seq` por conversa é atribuído sob lock de linha. Atribuição usa lock otimista
   (`UPDATE ... WHERE version = ? AND assignee IS NULL`; zero linhas = perdeu a disputa).
 - Takeover do analista é um handoff pedido por ele, com atribuição imediata.
@@ -269,7 +277,8 @@ A DLQ tem listar, purgar e reprocessar.
   marca. Meça **idade** da fila, não só tamanho.
 - Prioridade: `peso da prioridade + envelhecimento (espera / alvo de SLA) + match de skill`, filtrada por
   presença e capacidade, **calculada no momento de puxar**.
-- Níveis de prioridade e SLAs por prioridade: **pendente** (propor ao dono).
+- Níveis de prioridade: P1 urgente (5 min), P2 alta (15 min), P3 normal (1 h), P4 baixa (4 h), prazo da primeira
+  resposta humana. O analista puxa o ticket de prazo mais próximo (ADR 0004).
 
 ### 3.6 Antipadrões proibidos
 
@@ -300,7 +309,9 @@ O gerador de carga grava um ledger JSONL do que enviou; um checker cruza com a a
   `matched_rule_id`.
 - **Dry-run:** aplica a versão candidata aos últimos N tickets e mostra o diff antes de publicar.
 - Sem regra que altere entrada de outra regra, sem scripting livre, sem regra fixa em código por marca.
-- Equipes e analistas podem atender mais de uma marca.
+- Equipes e analistas podem atender mais de uma marca. Equipe é grupo de analistas dona de filas (ADR 0005).
+- As regras rodam na abertura (prioridade, tags, fila prevista) e de novo na escalação (fila e prioridade
+  finais). Sem regra: fila prevista; sem ela, a padrão da marca (ADR 0005, R2).
 - **Regras em linguagem natural** (extra): o LLM gera o JSON, o schema valida, o dry-run mostra o diff, um
   humano aprova. Nunca publica sozinho.
 
@@ -374,7 +385,7 @@ quebra de ordem ou conversa órfã.
 mensagem → ~0,7 ticket/s, ~5 msg/s, ~20 eventos/s. Picos 10× (~200/s) e 50× (~1.000/s) por 5 a 15 min.
 
 **Cenários:** (S1) rampa 1×→10×→50×→1× com 1, 2 e 4 consumidores; (S2) Kafka parado por 60 s com `docker pause`
-+ reentrega de webhooks de 1 a 5 vezes fora de ordem; (S3) agente lento ou falhando → escala em ≤ 30 s;
++ reentrega de webhooks de 1 a 5 vezes fora de ordem; (S3) agente lento ou falhando → escala em ≤ 40 s (limite de silêncio de 30 s, ADR 0004, H6);
 (S4) poison message → DLQ sem travar a partição; (S5) consumidor cai a cada 30 s; (S6) noisy neighbor entre
 marcas; (S7) timeout do stub de LLM → modo só-regras com roteamento correto por fatos duros.
 
@@ -442,8 +453,8 @@ disco do Windows é lento). Segredos em `.env` (ignorado; manter `.env.example`)
 ## 13. Pendências e onboarding
 
 **Pendentes (perguntar ao dono antes de assumir):** o dia 27 inclui a apresentação? agrupar em ~5 PRs?
-linguagem da análise (Python assumido) e do mock (Ruby assumido); política para `in_reply_to_seq` defasado;
-níveis de prioridade e SLAs por prioridade; definição do cluster e limites do mapa; biblioteca do grafo.
+linguagem da análise (Python assumido); desenho do caminho de enriquecimento por LLM sem Kafka na
+plataforma; definição do cluster e limites do mapa; biblioteca do grafo.
 
 **Perguntas para a CloudWalk:** volume real por canal e marca e fator de pico; formato das mensagens no tópico
 Kafka; como o agente sinaliza escalação; quem é dono do broker; residência de dados BR e US; taxa real de

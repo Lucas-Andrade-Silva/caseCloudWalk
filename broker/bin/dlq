@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# Rotina da DLQ das respostas do agente. Uso: bin/dlq list | replay | purge
+require_relative "../karafka"
+
+dlq = Broker::Dlq.new
+case ARGV.first
+when "list"
+  entries = dlq.list
+  puts "#{entries.size} mensagem(ns) não tratada(s) na DLQ"
+  entries.each do |entry|
+    puts "  [#{entry[:partition]}:#{entry[:offset]}] chave #{entry[:key]}, tentativa #{entry[:attempt]}, " \
+         "origem #{entry[:original_topic]}: #{entry[:error]}"
+  end
+when "replay" then puts "#{dlq.replay} mensagem(ns) republicada(s)"
+when "purge" then puts "#{dlq.purge} mensagem(ns) purgada(s)"
+else
+  warn "uso: bin/dlq list | replay | purge"
+  exit 1
+end
