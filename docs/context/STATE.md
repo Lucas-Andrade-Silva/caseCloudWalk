@@ -4,11 +4,11 @@ Atualizado em: 2026-11-17
 
 ## Fase atual
 
-Construção em andamento. Tudo até o editor da operação está na `main` (fatias 01 a 06, piloto de carga e as
-telas: entrada, painel do analista, chat do cliente e editor da operação). **Mapa vivo pronto e verificado
-ao vivo na pilha real, sem commit**, na branch `feat/live-map`. Entrega até **2026-11-27**.
-Ordem combinada com o dono: mapa vivo → LLM → experimento oficial → README e limpeza para a demo. Se o prazo
-apertar, a LLM sai antes do experimento (que é exigido pelo TAPI); corte só com OK do dono.
+Construção em andamento. Na `main`: fatias 01 a 06, piloto de carga, todas as telas e o mapa vivo.
+**Observabilidade pronta e verificada na pilha real, sem commit**, na branch `feat/observability`
+(ADR 0008). Entrega até **2026-11-27**. Ordem decidida pelo dono em 2026-11-18: observabilidade → LLM
+(ADR 0008, L1–L3) → experimento oficial → README e limpeza para a demo. O experimento é exigido pelo TAPI;
+se o prazo apertar, corte só com OK do dono.
 
 ## Onde está cada coisa
 
@@ -16,7 +16,7 @@ apertar, a LLM sai antes do experimento (que é exigido pelo TAPI); corte só co
 - Decisões: `docs/decisions/0002` (arquitetura e escopo), `0003` (integração com o agente, ticket único,
   resposta atrasada), `0004` (escalação, P1–P4, atribuição, `sidekiq-cron`, agente mudo: limite de 30 s e
   meta de ≤ 40 s), `0005` (equipes, regras em dois momentos, fatos, versões, auditoria), `0006` (memória)
-  e `0007` (interface; I12–I13: cluster por primeira tag, ActionCable com Redis).
+  `0007` (interface; I12–I13: cluster por primeira tag, ActionCable com Redis) e `0008` (observabilidade e LLM).
 - Especificações de fatia: `docs/specs/01` a `06`. Piloto de carga: `docs/research/2026-11-16-piloto-de-carga.md`.
 - Brief do parceiro: `docs/TAPI_cloudwalk.pdf`.
 
@@ -25,9 +25,11 @@ apertar, a LLM sai antes do experimento (que é exigido pelo TAPI); corte só co
 - Subir tudo: `docker compose up -d --build` (se só o código mudou, `docker compose up -d --force-recreate
   api` aplica migrações; recrie `relay`, `sidekiq` e consumidores, que são processos longos, e o `web` quando
   mudar o `vite.config.ts`).
-- **Gates** (2026-11-17, zero falhas): `docker compose run --rm` + `test` (plataforma, 186), `broker-test`
-  (21), `mock-agent-test` (20) e `web-test` (frontend: tipos, lint e 45 testes).
+- **Gates** (2026-11-18, zero falhas): `docker compose run --rm` + `test` (plataforma, 191), `broker-test`
+  (25), `mock-agent-test` (22) e `web-test` (frontend: tipos, lint e 45 testes).
 - **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
+- **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`; Grafana em `:3030`,
+  Jaeger em `:16686` (API de consulta em `/api/v3`), Prometheus em `:9090`.
   Mapa vivo em `#/mapa`; cliente simulado em `#/cliente`.
 - **Fumaça com a pilha no ar** (`docker compose exec api bundle exec rails <tarefa>`): `smoke:round_trip`,
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
@@ -54,6 +56,8 @@ Caminho de uma mensagem (ADR 0003):
   - **Mapa vivo:** `GET /api/map` (retrato) e `MapChannel` no `/cable`; o `Ticket` publica no canal da marca
     depois de cada commit (falha de Redis só gera aviso). Token no subprotocolo `helpdesk-token.<base64url>`.
   - Resiliência: evento recusado fica estacionado; banco fora responde 503; `Invariants::Checker`.
+  - Observabilidade (ADR 0008): trace W3C viaja no outbox e segue por relay, broker, Kafka e agente até a
+    resposta na API; `/metrics` com RED por rota e medidas do domínio lidas do banco a cada coleta.
 - `broker/` (Ruby puro): webhook → Kafka e Kafka → API, com retry-1 (10 s), retry-2 (60 s) e DLQ.
 - `mock_agent/` (Ruby puro): responde ou escala (30%), determinístico; `[escalar]`/`[responder]`; modo caos.
 - `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada, painel do analista, chat do cliente
@@ -61,7 +65,7 @@ Caminho de uma mensagem (ADR 0003):
   canvas; eventos agrupados a cada 250 ms; sem conexão, polling de 5 s; teto de 500 nós). Painel e chat
   ainda atualizam por polling. O Vite vigia arquivos por polling (`VITE_USE_POLLING`, Windows).
 - Seeds de dev: equipes, filas e regras v1; analistas Ana, Bruno, Carla (`dev-analyst-<nome>`), ops Olivia.
-- Ainda **não** existem: LLM, canais reais, alerta de incidente no mapa, RLS, k6 e observabilidade.
+- Ainda **não** existem: LLM, canais reais, alerta de incidente no mapa, RLS e k6.
 
 ## Verdades vigentes
 
@@ -76,13 +80,14 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Estado do repositório
 
-- Remoto: só a `main`. Local: `main`, `feat/live-map` (mapa vivo, sem commit) e o backup acima.
+- Remoto: só a `main`. Local: `main`, `feat/observability` (sem commit) e o backup acima.
 - A CLI `gh` não está autenticada: PRs são abertos pelo site, com links preparados.
 
 ## Próximos passos
 
-1. Commit e PR do mapa vivo.
-2. LLM atrás de uma chave (enriquecimento, brief, resumos de memória).
+1. Commit e PR da observabilidade.
+2. LLM atrás de uma chave (ADR 0008: job do Sidekiq, `openai/gpt-oss-120b`, categorias fechadas); o modo
+   `live` precisa de `GROQ_API_KEY` no `.env` do dono.
 3. Experimento oficial (k6 em modo de produção, cenários do playbook §9, análise) e README.
 4. Antes da demo: limpar os dados de desenvolvimento e ensaiar.
 
@@ -100,16 +105,15 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Bloqueios e riscos
 
-- Prazo curto para o escopo escolhido; ordem de corte no playbook (§10), aplicada só com OK do dono.
-- **Latência em desenvolvimento não vale como medida**; o experimento roda em modo de produção.
-- Ponta a ponta p99 em 10× ficou em 1.026 ms com a API em 4 × 5 e mock instantâneo (no limite da meta);
-  com 1 × 3, o 10× degrada. 50× não testado. A publicação no mapa (uma por commit de ticket) entrou depois
-  do piloto: medir o custo no experimento.
+- **Latência em desenvolvimento não vale como medida** (o trace mostra ~1 s parado no início de cada
+  requisição da API em dev); o experimento roda em modo de produção.
+- 10×: ponta a ponta p99 de 1.026 ms com a API em 4 × 5 (no limite da meta); 50× não testado. Entraram
+  depois do piloto e precisam ser medidos no experimento: publicação no mapa e traces (amostrar 1% a 10%).
+- Com WEB_CONCURRENCY > 1, os contadores RED do `/metrics` são de um processo só; as medidas do domínio não.
 - Depois de uma queda do Postgres, o vigia escala os tickets atrasados (decidido); medir a fila humana.
 - Outros programas desta máquina ocupam `[::1]:3000` (wslrelay) e `[::1]:5173` (Node): use `127.0.0.1`.
 - Banco de dev bagunçado para demo: equipes duplicadas (seeds sem filas × as da migração 0005, donas das
   filas padrão) e dezenas de tickets atrasados com a Ana (o `smoke:escalation` esvazia a fila dela).
-- Ninguém é avisado quando o prazo de SLA humano estoura; o mapa mostra o risco, mas não notifica.
-- A extração de valor por expressão regular é limitada (não entende "cinco mil reais").
-- Não testado: máquina sem cache de imagens Docker, macOS e Linux.
+- Ninguém é avisado quando o prazo de SLA humano estoura (o mapa e o Grafana mostram, sem alerta).
+- Extração de valor por regex é limitada ("cinco mil reais"). Não testado: macOS, Linux, máquina sem cache.
 - Desenho da arquitetura atual da CloudWalk ainda não recebido; os contratos são nossos.

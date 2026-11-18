@@ -94,6 +94,24 @@ banco próprio (resultados do piloto em [`docs/research/2026-11-16-piloto-de-car
 API_PORT=3002 docker compose -p helpdesk-pilot -f compose.yaml -f compose.pilot.yaml up -d --build
 ```
 
+## Como observar
+
+Traces e métricas sobem com o perfil `obs` (ADR 0008):
+
+```bash
+OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d
+```
+
+- **Grafana** (http://127.0.0.1:3030, leitura sem login): painel "Help Desk — plataforma" com requisições e
+  latência da API e do broker, outbox pendente e estacionado, tickets por modo, espera por humano e pelo
+  agente e lag dos consumidores do Kafka.
+- **Jaeger** (http://127.0.0.1:16686): cada mensagem vira um trace só, da entrada na API ao outbox, relay,
+  broker, Kafka, agente simulado e de volta à API.
+- **Prometheus** (http://127.0.0.1:9090): as métricas cruas (`/metrics` da API e do broker).
+
+Sem o perfil, a aplicação roda igual e não exporta traces. A amostragem é ajustável com
+`OTEL_TRACES_SAMPLER_ARG` (1.0 = tudo; use 0.01 a 0.1 em teste de carga).
+
 ## Onde está cada coisa
 
 - Estado atual e próximos passos: [`docs/context/STATE.md`](docs/context/STATE.md)

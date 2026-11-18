@@ -35,11 +35,13 @@ RSpec.describe Outbox::Relay do
     expect(relay.publish_pending).to eq(3)
 
     expect(producer.sent.map { |m| m[:key] }).to eq(%w[a b c])
-    expect(producer.sent.first).to eq(
+    # Toda entrega leva o contexto W3C do span de entrega (ADR 0008, O2); os demais headers seguem exatos.
+    expect(producer.sent.first).to match(
       topic: "test.topic",
       key: "a",
       payload: { "n" => "a" }.to_json,
-      headers: { "brand_id" => "infinitepay", "event_id" => events.first.event_id }
+      headers: { "brand_id" => "infinitepay", "event_id" => events.first.event_id,
+                 "traceparent" => a_string_matching(/\A00-\h{32}-\h{16}-0[01]\z/) }
     )
     expect(OutboxEvent.pending).to be_empty
     expect(events.map { |e| e.reload.published_at }).to all(be_present)

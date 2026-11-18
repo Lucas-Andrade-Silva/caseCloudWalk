@@ -22,7 +22,7 @@ module Broker
       body = request.body.read
       return respond(401, "assinatura inválida") unless signed?(env, body)
 
-      @producer.produce_sync(message_from(body))
+      publish(env, message_from(body))
       respond(204)
     rescue Invalid => error
       respond(422, error.message)
@@ -32,6 +32,17 @@ module Broker
     end
 
     private
+
+    # Continua o trace da plataforma (header HTTP traceparent) e o passa adiante nos headers do Kafka.
+    def publish(env, message)
+      OpenTelemetry::Context.with_current(Tracing.from_rack(env)) do
+        Tracing.tracer.in_span("kafka publish #{message[:topic]}", kind: :producer,
+                                                                   attributes: { "messaging.system" => "kafka",
+                                                                                 "messaging.destination.name" => message[:topic] }) do
+          @producer.produce_sync(message.merge(headers: Tracing.with_context(message[:headers])))
+        end
+      end
+    end
 
     def signed?(env, body)
       Signature.valid?(

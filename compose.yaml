@@ -12,6 +12,14 @@
 #   docker compose run --rm web-test
 name: helpdesk
 
+# Traces OpenTelemetry (ADR 0008, O2). Desligados por padrão; com a pilha de observabilidade:
+#   OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d
+x-otel-env: &otel-env
+  OTEL_TRACES_EXPORTER: ${OTEL_TRACES_EXPORTER:-none}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  OTEL_TRACES_SAMPLER: parentbased_traceidratio
+  OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-1.0}
+
 x-backend: &backend
   build:
     context: ./backend
@@ -32,6 +40,7 @@ x-backend-env: &backend-env
   BROKER_WEBHOOK_URL: http://broker:4000/webhooks/helpdesk
   BOT_API_TOKEN: ${BOT_API_TOKEN:-dev-bot-token}
   REDIS_URL: redis://redis:6379/0
+  <<: *otel-env
 
 x-broker: &broker
   build:
@@ -46,6 +55,7 @@ x-broker-env: &broker-env
   BROKER_WEBHOOK_SECRETS: ${BROKER_WEBHOOK_SECRETS:-dev-broker-secret}
   PLATFORM_URL: http://api:3000
   BOT_API_TOKEN: ${BOT_API_TOKEN:-dev-bot-token}
+  <<: *otel-env
 
 x-mock-agent: &mock-agent
   build:
@@ -138,6 +148,7 @@ services:
     <<: *backend
     environment:
       <<: *backend-env
+      OTEL_SERVICE_NAME: helpdesk-relay
     command: ["bundle", "exec", "rails", "outbox:relay"]
     restart: unless-stopped
     depends_on:
@@ -151,6 +162,7 @@ services:
     <<: *backend
     environment:
       <<: *backend-env
+      OTEL_SERVICE_NAME: helpdesk-sidekiq
     command: ["bundle", "exec", "sidekiq"]
     restart: unless-stopped
     depends_on:
@@ -181,6 +193,7 @@ services:
     <<: *broker
     environment:
       <<: *broker-env
+      OTEL_SERVICE_NAME: helpdesk-broker-replies
     command: ["bundle", "exec", "karafka", "server"]
     restart: unless-stopped
     depends_on:
@@ -197,6 +210,7 @@ services:
       MOCK_ESCALATION_RATE: ${MOCK_ESCALATION_RATE:-0.3}
       # Modo caos (spec 05), ex.: latency_ms=200..2000,duplicate=0.1,silence=0.05. Vazio: sem caos.
       MOCK_CHAOS: ${MOCK_CHAOS:-}
+      <<: *otel-env
     command: ["bundle", "exec", "karafka", "server"]
     restart: unless-stopped
     depends_on:
@@ -247,6 +261,51 @@ services:
     <<: *web
     profiles: ["test"]
     command: ["npm", "run", "gate"]
+
+  # Observabilidade (ADR 0002, D13; ADR 0008). Sobe com o perfil obs:
+  #   OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d
+  # Jaeger 2 recebe OTLP direto (já é um coletor OpenTelemetry). Interface: http://127.0.0.1:16686
+  jaeger:
+    image: jaegertracing/jaeger:2.22.0
+    profiles: ["obs"]
+    ports:
+      - "${JAEGER_PORT:-16686}:16686"
+
+  # Lag dos consumidores do Kafka para o Prometheus.
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.11.0
+    profiles: ["obs"]
+    command: ["--kafka.server=kafka:9092"]
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # Interface: http://127.0.0.1:9090
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    profiles: ["obs"]
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+
+  # Painel da plataforma: http://127.0.0.1:3030 (leitura sem login; dados sintéticos de desenvolvimento).
+  grafana:
+    image: grafana/grafana:12.4.14
+    profiles: ["obs"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-dev-grafana-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/helpdesk.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "${GRAFANA_PORT:-3030}:3000"
+    depends_on:
+      - prometheus
 
 volumes:
   postgres-data:

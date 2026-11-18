@@ -7,6 +7,14 @@ class OutboxEvent < ApplicationRecord
   # UUID v7 é ordenável por tempo. É a identidade do evento para o dedupe no consumo.
   attribute :event_id, default: -> { SecureRandom.uuid_v7 }
 
+  # O evento sai depois, por outro processo (o relay). Para o trace continuar, o contexto de quem o criou
+  # (W3C traceparent) viaja junto, nos headers (ADR 0008, O2). Sem trace ativo, nada é gravado.
+  before_create do
+    carrier = {}
+    OpenTelemetry.propagation.inject(carrier)
+    self.headers = headers.merge(carrier) if carrier.key?("traceparent")
+  end
+
   scope :dead, -> { where(published_at: nil, discarded_at: nil).where.not(dead_at: nil).order(:id) }
   scope :pending, lambda {
     where(published_at: nil, dead_at: nil, discarded_at: nil)
