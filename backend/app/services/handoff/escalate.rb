@@ -48,6 +48,7 @@ module Handoff
       Rules::Router.record!(ticket: @ticket, step: "routing.escalation", facts: facts, outcome: outcome)
       @ticket.record_event!(kind: "ticket.escalated", actor: @actor, data: event_data(queue))
       AgentEvents.ticket_escalated!(ticket: @ticket)
+      Llm::Summaries.enqueue_after_commit(BriefSummaryJob, @ticket.id)
       @ticket
     end
 

@@ -12,7 +12,11 @@ module Rules
       "amount" => :number,
       "escalation_reason" => :string,
       "escalation_trigger" => :string,
-      "ai_minutes" => :number
+      "ai_minutes" => :number,
+      # Fatos do LLM (ADR 0008, L3), ausentes enquanto o ticket não foi enriquecido ou se a confiança foi baixa.
+      "category" => :string,
+      "language" => :string,
+      "frustration" => :string
     }.freeze
 
     OPERATORS = {

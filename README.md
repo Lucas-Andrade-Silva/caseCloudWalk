@@ -112,6 +112,20 @@ OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d
 Sem o perfil, a aplicação roda igual e não exporta traces. A amostragem é ajustável com
 `OTEL_TRACES_SAMPLER_ARG` (1.0 = tudo; use 0.01 a 0.1 em teste de carga).
 
+## LLM
+
+A LLM dá fatos (categoria, idioma, frustração) que as regras podem usar, e melhora o brief do handoff e o
+resumo de encerramento; quem decide fila e prioridade continua sendo a regra (ADR 0008). Modo em `LLM_MODE`:
+
+- `stub` (padrão): sem rede, respostas previsíveis. É o que roda nos testes e na carga.
+- `replay`: respostas gravadas em `backend/llm_replay`, para reproduzir uma demonstração sem chamar ninguém.
+- `live`: Groq (`openai/gpt-oss-120b`). Crie a chave no console do Groq e coloque `GROQ_API_KEY` no seu `.env`
+  (nunca no repositório). Com `LLM_RECORD=true`, as respostas ao vivo são gravadas para o `replay`.
+- `off`: sem LLM; tudo funciona só com regras e templates.
+
+Antes de qualquer chamada, CPF, cartão, e-mail e telefone são trocados por marcadores. Se a LLM falhar ou
+demorar, o atendimento segue sem ela.
+
 ## Onde está cada coisa
 
 - Estado atual e próximos passos: [`docs/context/STATE.md`](docs/context/STATE.md)

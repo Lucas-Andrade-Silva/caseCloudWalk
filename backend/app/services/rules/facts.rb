@@ -31,7 +31,7 @@ module Rules
         "channel" => ticket.channel,
         "customer_recurring" => same_customer.where(created_at: ...ticket.created_at).exists?,
         "contacts_24h" => same_customer.where(created_at: (ticket.created_at - 24.hours)..ticket.created_at).count
-      }
+      }.merge(ticket.llm_facts.to_h.slice("category", "language", "frustration"))
     end
 
     # O maior valor em dinheiro citado no texto, ou nil.

@@ -40,6 +40,10 @@ x-backend-env: &backend-env
   BROKER_WEBHOOK_URL: http://broker:4000/webhooks/helpdesk
   BOT_API_TOKEN: ${BOT_API_TOKEN:-dev-bot-token}
   REDIS_URL: redis://redis:6379/0
+  # LLM (ADR 0008): stub por padrão, sem rede. Para o Groq: LLM_MODE=live e GROQ_API_KEY no seu .env.
+  LLM_MODE: ${LLM_MODE:-stub}
+  GROQ_API_KEY: ${GROQ_API_KEY:-}
+  LLM_RECORD: ${LLM_RECORD:-false}
   <<: *otel-env
 
 x-broker: &broker

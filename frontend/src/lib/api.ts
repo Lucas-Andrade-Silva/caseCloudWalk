@@ -63,7 +63,16 @@ export interface TicketDetail extends Omit<WorkItem, "last_message"> {
   assignee_id: string | null;
   closed_at: string | null;
   resolution_code: string | null;
-  handoff_brief: { summary: string; reason: string; trigger: string } | null;
+  handoff_brief: {
+    summary: string;
+    reason: string;
+    trigger: string;
+    /** Resumo do LLM (ADR 0008); o `summary` por template fica de reserva. */
+    llm_summary?: string;
+    llm_model?: string;
+  } | null;
+  /** Fatos que o LLM deu ao ticket (categoria, idioma, frustração, confiança); vazio sem enriquecimento. */
+  llm_facts?: { category?: string | null; language?: string; frustration?: string; confidence?: number; source?: string };
   messages: Message[];
   memory: { window_days: number; tickets: MemoryItem[] };
 }

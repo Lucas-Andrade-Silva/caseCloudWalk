@@ -12,6 +12,9 @@ const FACT_LABELS: Record<string, string> = {
   escalation_reason: "Motivo da escalação",
   escalation_trigger: "Gatilho da escalação",
   ai_minutes: "Minutos com a IA",
+  category: "Categoria (IA)",
+  language: "Idioma (IA)",
+  frustration: "Frustração (IA)",
 };
 
 const OPERATOR_LABELS: Record<string, string> = {

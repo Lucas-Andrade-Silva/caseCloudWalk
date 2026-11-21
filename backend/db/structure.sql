@@ -370,6 +370,7 @@ CREATE TABLE public.tickets (
     closed_at timestamp with time zone,
     resolution_code text,
     resolution_note text,
+    llm_facts jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT tickets_channel_valid CHECK ((channel = ANY (ARRAY['app_chat'::text, 'whatsapp'::text, 'email'::text]))),
     CONSTRAINT tickets_mode_valid CHECK ((mode = ANY (ARRAY['ai'::text, 'pending_human'::text, 'human'::text, 'closed'::text]))),
     CONSTRAINT tickets_resolution_code_valid CHECK (((resolution_code IS NULL) OR (resolution_code = ANY (ARRAY['resolved'::text, 'no_customer_response'::text, 'duplicate'::text, 'forwarded'::text])))),
@@ -998,6 +999,7 @@ ALTER TABLE ONLY public.inbound_events
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261118000008'),
 ('20261116000007'),
 ('20261116000006'),
 ('20261115000005'),

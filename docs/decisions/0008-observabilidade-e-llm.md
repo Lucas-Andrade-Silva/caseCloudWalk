@@ -41,6 +41,19 @@ do Kafka pelo `kafka-exporter`. As métricas OpenTelemetry do Ruby ainda são ex
 
 **O5. `/metrics` sem autenticação, só na rede do Compose.** Em produção ficaria atrás da rede interna.
 
+**L4 a L8 (propostas do agente para o LLM, aguardam o dono):**
+
+- **L4.** Modos por `LLM_MODE`: `off`, `stub` (padrão; sem rede), `replay` (respostas gravadas em
+  `backend/llm_replay`, chave = hash do texto redigido + versão do prompt + modelo) e `live` (Groq, só com
+  `GROQ_API_KEY`). `LLM_RECORD=true` grava as respostas ao vivo para o replay.
+- **L5.** Enriquecimento só na abertura do ticket (primeira mensagem), com fatos `category`, `language` e
+  `frustration` no catálogo das regras. Categoria com confiança abaixo de 0,5 (`LLM_MIN_CONFIDENCE`) não
+  vira fato.
+- **L6.** Brief e resumo de encerramento por LLM em jobs depois do commit, sobre as últimas 20 mensagens; o
+  template fica de reserva (brief) ou é substituído (resumo de encerramento, sempre prefixado com o ticket).
+- **L7.** Redação antes de qualquer chamada: CPF com dígito verificador, cartão com Luhn, e-mail e telefone.
+- **L8.** Disjuntor por processo: 5 falhas seguidas abrem por 30 s; jobs sem nova tentativa.
+
 ## Consequências
 
 - Mais containers e dependências; versões fixadas, cada uma publicada há pelo menos 14 dias.

@@ -82,6 +82,34 @@ describe("painel do analista", () => {
     expect(window.location.hash).toBe("#/fila/t1");
   });
 
+  it("mostra o resumo da IA identificado, com o template de reserva e os fatos que a IA deu", async () => {
+    window.location.hash = "#/fila/t1";
+    mockApi({
+      "GET /api/work": () => [200, { ...emptyWork, mine: [item({ mode: "human" })] }],
+      "GET /api/tickets/t1": () => [
+        200,
+        detail({
+          handoff_brief: {
+            summary: "Escalado pelo agente (motivo: credito_alto_valor).",
+            reason: "credito_alto_valor",
+            trigger: "agent_requested",
+            llm_summary: "Cliente quer R$ 12 mil; o agente não pode aprovar valor alto.",
+            llm_model: "openai/gpt-oss-120b",
+          },
+          llm_facts: { category: "credito", frustration: "alta", language: "pt", confidence: 0.82, source: "live" },
+        }),
+      ],
+    });
+    render(<AnalystWorkspace token="tk" />);
+
+    const context = await screen.findByRole("region", { name: "Contexto" });
+    expect(within(context).getByText("Cliente quer R$ 12 mil; o agente não pode aprovar valor alto.")).toBeInTheDocument();
+    expect(within(context).getByText("Gerado por IA · openai/gpt-oss-120b")).toBeInTheDocument();
+    expect(within(context).getByText("Escalado pelo agente (motivo: credito_alto_valor).")).toBeInTheDocument();
+    expect(within(context).getByText("categoria: credito")).toBeInTheDocument();
+    expect(within(context).getByText("frustração: alta")).toBeInTheDocument();
+  });
+
   it("avisa quando não há nada para pegar", async () => {
     mockApi({ "GET /api/work": () => [200, emptyWork], "POST /api/work/next": () => [204] });
     render(<AnalystWorkspace token="tk" />);

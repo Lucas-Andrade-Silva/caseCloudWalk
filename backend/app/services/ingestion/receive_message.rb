@@ -25,6 +25,15 @@ module Ingestion
     def call
       validate!
 
+      result = receive
+      # Depois do commit: o job do LLM precisa achar o ticket gravado (ADR 0008, L1).
+      EnrichTicketJob.perform_async(result.ticket.id) if @opened && Llm.mode != "off"
+      result
+    end
+
+    private
+
+    def receive
       ApplicationRecord.transaction do
         brand = Brand.find_by(slug: @brand_slug) or raise Invalid, "marca desconhecida: #{@brand_slug}"
         inbound_event_id = register_inbound(brand)
@@ -32,6 +41,7 @@ module Ingestion
 
         customer = find_or_create_customer(brand)
         ticket, opened = find_or_open_ticket(brand, customer)
+        @opened = opened
         message = ticket.append_message!(sender: "customer", body: @text, inbound_event_id: inbound_event_id)
 
         if opened
@@ -49,8 +59,6 @@ module Ingestion
         Result.new(ticket: ticket, message: message, duplicate: false)
       end
     end
-
-    private
 
     def validate!
       raise Invalid, "canal desconhecido: #{@channel}" unless Ticket::CHANNELS.include?(@channel)
