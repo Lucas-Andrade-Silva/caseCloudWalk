@@ -16,7 +16,7 @@ RSpec.describe Llm::Enrich do
 
   def fake_client(data)
     result = Llm::Client::Result.new(ok: true, data: data, source: "replay", error: nil,
-                                     prompt_version: "enrich-v1", model: "openai/gpt-oss-120b", key: "k")
+                                     prompt_version: "enrich-v2", model: "openai/gpt-oss-120b", key: "k")
     Struct.new(:result) { def call(**) = result }.new(result)
   end
 
@@ -28,7 +28,7 @@ RSpec.describe Llm::Enrich do
 
     ticket.reload
     expect(ticket.llm_facts).to include("category" => "maquininha", "language" => "pt", "frustration" => "baixa",
-                                        "confidence" => 0.6, "source" => "stub", "prompt_version" => "enrich-v1",
+                                        "confidence" => 0.6, "source" => "stub", "prompt_version" => "enrich-v2",
                                         "model" => "openai/gpt-oss-120b")
     expect(ticket).to have_attributes(priority: "p1", tags: [ "dispositivo" ])
     expect(ticket.queue.slug).to eq("maquininha")

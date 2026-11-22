@@ -1,7 +1,7 @@
 module Llm
   # Prompt versionado no git (prompts/<tarefa>/vN.yaml): texto, schema, modelo e temperatura fixos (playbook §5).
   Prompt = Data.define(:task, :version, :model, :temperature, :max_tokens, :system, :schema) do
-    CURRENT = { "enrich" => "v1", "brief" => "v1", "closing" => "v1" }.freeze
+    CURRENT = { "enrich" => "v2", "brief" => "v2", "closing" => "v2" }.freeze
 
     def self.load(task)
       file = Rails.root.join("prompts", task, "#{CURRENT.fetch(task)}.yaml")

@@ -9,6 +9,9 @@ module Llm
   class Client
     Result = Data.define(:ok, :data, :source, :error, :prompt_version, :model, :key)
 
+    # Recusa do Groq com o motivo dele (ex.: groq_400_json_validate_failed), para a auditoria dizer o porquê.
+    class HttpError < StandardError; end
+
     GROQ_URL = URI("https://api.groq.com/openai/v1/chat/completions")
 
     def initialize(mode: Llm.mode, transport: nil, replay_dir: Llm.replay_dir, api_key: Llm.api_key,
@@ -68,7 +71,7 @@ module Llm
       [ parse_content(response), "live", nil ]
     rescue StandardError => error
       @breaker.failure!
-      [ nil, "live", error.class.name ]
+      [ nil, "live", error.is_a?(HttpError) ? error.message : error.class.name ]
     end
 
     def request_body(prompt, redacted)
@@ -108,7 +111,10 @@ module Llm
       Net::HTTP.start(GROQ_URL.host, GROQ_URL.port, use_ssl: true, open_timeout: @timeout, read_timeout: @timeout) do |http|
         response = http.post(GROQ_URL.path, body.to_json,
                              "Content-Type" => "application/json", "Authorization" => "Bearer #{@api_key}")
-        raise "Groq respondeu #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+        unless response.is_a?(Net::HTTPSuccess)
+          code = (JSON.parse(response.body).dig("error", "code") rescue nil) || "erro"
+          raise HttpError, "groq_#{response.code}_#{code}"
+        end
 
         JSON.parse(response.body)
       end

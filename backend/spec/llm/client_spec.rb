@@ -20,7 +20,7 @@ RSpec.describe Llm::Client do
   it "no modo live, manda o texto redigido entre delimitadores e pede saída no schema estrito" do
     result = live_client.call(task: "enrich", input: "minha maquininha não liga, CPF 529.982.247-25")
 
-    expect(result).to have_attributes(ok: true, data: valid, source: "live", prompt_version: "enrich-v1",
+    expect(result).to have_attributes(ok: true, data: valid, source: "live", prompt_version: "enrich-v2",
                                       model: "openai/gpt-oss-120b")
     body = requests.sole
     expect(body["model"]).to eq("openai/gpt-oss-120b")
@@ -38,6 +38,12 @@ RSpec.describe Llm::Client do
 
     expect(off_schema.call(task: "enrich", input: "oi")).to have_attributes(ok: false, error: "invalid_output")
     expect(not_json.call(task: "enrich", input: "oi")).to have_attributes(ok: false, error: "invalid_output")
+  end
+
+  it "registra o motivo dado pelo Groq quando ele recusa a chamada" do
+    client = live_client(Llm::Client::HttpError.new("groq_400_json_validate_failed"))
+
+    expect(client.call(task: "enrich", input: "oi")).to have_attributes(ok: false, error: "groq_400_json_validate_failed")
   end
 
   it "abre o disjuntor depois de falhas seguidas e para de chamar por um tempo" do

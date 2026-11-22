@@ -5,8 +5,8 @@ Atualizado em: 2026-11-17
 ## Fase atual
 
 Construção em andamento. Na `main`: fatias 01 a 06, piloto de carga, todas as telas e o mapa vivo.
-Observabilidade commitada em `feat/observability`. **LLM pronta e verificada na pilha real (modo stub), sem
-commit**, em `feat/llm` (empilhada na observabilidade; ADR 0008). Entrega até **2026-11-27**. Ordem decidida pelo dono em 2026-11-18: observabilidade → LLM
+Observabilidade e LLM commitadas (`feat/observability`, `feat/llm`). **LLM verificada ao vivo no Groq em 2026-11-21**; correção
+dos prompts para v2 (max_tokens) ainda sem commit (ADR 0008). Entrega até **2026-11-27**. Ordem decidida pelo dono em 2026-11-18: observabilidade → LLM
 (ADR 0008, L1–L3) → experimento oficial → README e limpeza para a demo. O experimento é exigido pelo TAPI;
 se o prazo apertar, corte só com OK do dono.
 
@@ -25,7 +25,7 @@ se o prazo apertar, corte só com OK do dono.
 - Subir tudo: `docker compose up -d --build` (se só o código mudou, `docker compose up -d --force-recreate
   api` aplica migrações; recrie `relay`, `sidekiq` e consumidores, que são processos longos, e o `web` quando
   mudar o `vite.config.ts`).
-- **Gates** (2026-11-18, zero falhas): `docker compose run --rm` + `test` (plataforma, 210), `broker-test`
+- **Gates** (2026-11-21, zero falhas): `docker compose run --rm` + `test` (plataforma, 212), `broker-test`
   (25), `mock-agent-test` (22) e `web-test` (frontend: tipos, lint e 46 testes).
 - **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`; Grafana em `:3030`,
@@ -65,7 +65,7 @@ Caminho de uma mensagem (ADR 0003):
   canvas; eventos agrupados a cada 250 ms; sem conexão, polling de 5 s; teto de 500 nós). Painel e chat
   ainda atualizam por polling. O Vite vigia arquivos por polling (`VITE_USE_POLLING`, Windows).
 - Seeds de dev: equipes, filas e regras v1; analistas Ana, Bruno, Carla (`dev-analyst-<nome>`), ops Olivia.
-- Ainda **não** existem: LLM ao vivo testada (falta a chave do Groq), canais reais, alerta de incidente no mapa, RLS e k6.
+- Ainda **não** existem: canais reais, alerta de incidente no mapa, RLS e k6.
 
 ## Verdades vigentes
 
@@ -80,14 +80,14 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Estado do repositório
 
-- Remoto: só a `main`. Local: `main`, `feat/observability` (commitada), `feat/llm` (sem commit) e o backup.
-- A CLI `gh` não está autenticada: PRs são abertos pelo site, com links preparados.
+- Remoto: só a `main`. Local: `main`, `feat/observability` e `feat/llm` (commitadas; ajuste v2 sem commit) e o
+  backup. A CLI `gh` não está autenticada: PRs saem pelo site, com links preparados.
 
 ## Próximos passos
 
-1. Commit da LLM; PRs da observabilidade e da LLM (nessa ordem).
-2. Modo `live`: o dono cria a chave do Groq e põe `GROQ_API_KEY` no `.env`; gravar o replay (`LLM_RECORD`).
-   Tudo funciona sem chave (`stub`); `live` só foi testado com transporte falso.
+1. Commit do ajuste dos prompts; push e PRs da observabilidade e da LLM (nessa ordem).
+2. Dono: pôr `LLM_MODE=live` no `.env` (hoje diz stub; o teste passou o modo pela linha de comando). Gravar o
+   replay da demo com `LLM_RECORD=true`. Groq ao vivo: ~0,6–1,2 s por chamada; ignorou tentativa de injeção.
 3. Experimento oficial (k6 em modo de produção, cenários do playbook §9, análise) e README.
 4. Antes da demo: limpar os dados de desenvolvimento e ensaiar.
 
@@ -110,10 +110,10 @@ Caminho de uma mensagem (ADR 0003):
 - 10×: ponta a ponta p99 de 1.026 ms com a API em 4 × 5 (no limite da meta); 50× não testado. Entraram
   depois do piloto e precisam ser medidos no experimento: publicação no mapa e traces (amostrar 1% a 10%).
 - Com WEB_CONCURRENCY > 1, os contadores RED do `/metrics` são de um processo só; as medidas do domínio não.
+- O enriquecimento (~1 s no Groq) chega depois de escalações imediatas do agente; aí a categoria não muda a
+  fila (só se reroteia com a IA). Avaliar com o dono: reavaliar também na escalação quando o fato chegar.
 - Depois de uma queda do Postgres, o vigia escala os tickets atrasados (decidido); medir a fila humana.
-- Outros programas desta máquina ocupam `[::1]:3000` (wslrelay) e `[::1]:5173` (Node): use `127.0.0.1`.
 - Banco de dev bagunçado para demo: equipes duplicadas (seeds sem filas × as da migração 0005, donas das
   filas padrão) e dezenas de tickets atrasados com a Ana (o `smoke:escalation` esvazia a fila dela).
 - Ninguém é avisado quando o prazo de SLA humano estoura (o mapa e o Grafana mostram, sem alerta).
-- Extração de valor por regex é limitada ("cinco mil reais"). Não testado: macOS, Linux, máquina sem cache.
-- Desenho da arquitetura atual da CloudWalk ainda não recebido; os contratos são nossos.
+- Regex de valor é limitada ("cinco mil reais"); não testado em macOS e Linux; contratos da CloudWalk: nossos.
