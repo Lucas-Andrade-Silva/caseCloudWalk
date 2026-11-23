@@ -7,7 +7,8 @@ Atualizado em: 2026-11-22
 Reta final (entrega **2026-11-27**). Na `main`: fatias 01 a 06, piloto de carga, todas as telas e o mapa vivo.
 Commitadas e ainda fora da `main`: `feat/observability` e `feat/llm` (LLM verificada ao vivo no Groq em
 2026-11-21, prompts v2). Em andamento: `feat/incident-mode-and-redesign` (ADR 0009): **redesign no visual da CloudWalk**
-e **Modo Incidente** commitados; **"Por que a IA decidiu"** pronto e verificado na pilha (ainda sem commit). O experimento é exigido pelo TAPI; corte só com OK do dono.
+, **Modo Incidente** e **"Por que a IA decidiu"** commitados; **fechamento automático**, **reset de demo** e **tema claro com Painel** (ADR 0009, W8)
+prontos e verificados na pilha (ainda sem commit). O experimento é exigido pelo TAPI; corte só com OK do dono.
 
 ## Onde está cada coisa
 
@@ -26,14 +27,18 @@ e **Modo Incidente** commitados; **"Por que a IA decidiu"** pronto e verificado 
   api` aplica migrações; recrie `relay`, `sidekiq` e consumidores, que são processos longos, e o `web` quando
   mudar o `vite.config.ts` ou o `package-lock.json`).
 - **Gates** (`docker compose run --rm` + `test`, `broker-test`, `mock-agent-test`, `web-test`). Últimos
-  resultados: plataforma 232 e rubocop limpo (2026-11-22), broker 25, mock 22 (2026-11-21); frontend 57
+  resultados: plataforma 244 e rubocop limpo (2026-11-22), broker 25, mock 22 (2026-11-21); frontend 61
   testes, tipos e lint limpos (2026-11-22; com o Docker fora, `npm run gate` em `frontend/` com o Node local).
-- **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
+- **Interface:** `http://127.0.0.1:5173` (nunca `localhost`): `#/painel`, `#/fila`, `#/mapa`, `#/operacao`, `#/cliente`.
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`; Grafana em `:3030`,
   Jaeger em `:16686` (API de consulta em `/api/v3`), Prometheus em `:9090`.
-  Mapa vivo em `#/mapa`; cliente simulado em `#/cliente`.
 - **Fumaça com a pilha no ar** (`docker compose exec api bundle exec rails <tarefa>`): `smoke:round_trip`,
   `smoke:escalation`, `smoke:routing` e `smoke:agent_silence` (pare o `mock-agent` antes).
+- **Roteiro da demo e resiliência ao vivo:** `docs/demo/roteiro-resiliencia.md` e
+  `./scripts/demo/resiliencia.ps1 -Cenario kafka|agente` (derruba o serviço no meio de uma rajada e confere os invariantes).
+- **Banco de demo:** `docker compose exec api bundle exec rails demo:reset` apaga as conversas (mantém marcas,
+  equipes, filas, regras e pessoas) e cria a cliente sintética `demo-marina` com 2 atendimentos anteriores
+  (`HISTORY=false` para não criar). Só em desenvolvimento.
 - **Rajada e invariantes:** `load:burst[n,taxa,reentrega,seed]` grava `tmp/ledgers/<run>.jsonl`;
   `invariants:check[ledger,espera_s]` espera esvaziar e confere (código 1 se violar).
 - **Piloto em produção:** `API_PORT=3002 docker compose -p helpdesk-pilot -f compose.yaml -f compose.pilot.yaml
@@ -54,11 +59,13 @@ Caminho de uma mensagem (ADR 0003):
   (trace W3C ponta a ponta, `/metrics`); LLM (enriquecimento, brief e resumo, com fallback; ADR 0008);
   **Modo Incidente** (ADR 0009, W7): `Incident`, `Incidents::Detect` (5 em 10 min por marca e chave),
   título e rascunho pela LLM, `GET /api/incidents` e `POST /api/incidents/:id/resolve` (responder a todos);
-  **cadeia de decisão** (`GET /api/tickets/:id/explanation`, `Tickets::Explain`), montada da auditoria.
+  **cadeia de decisão** (`GET /api/tickets/:id/explanation`, `Tickets::Explain`), montada da auditoria;
+  **fechamento automático** (`Tickets::AutoClose`, a cada minuto): ticket da IA sem mensagem do cliente há 30
+  min fecha como `ai_resolved` (`AI_IDLE_CLOSE_MINUTES`); **Painel** (`GET /api/dashboard`, `Dashboard::Metrics`).
 - `broker/` (Ruby puro): webhook → Kafka e Kafka → API, com retry-1 (10 s), retry-2 (60 s) e DLQ.
 - `mock_agent/` (Ruby puro): responde ou escala (30%), determinístico; `[escalar]`/`[responder]`; modo caos.
 - `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada, painel do analista, chat do cliente,
-  editor da operação e mapa vivo (d3-force em canvas). Visual CloudWalk: tokens em `src/index.css`,
+  editor da operação, mapa vivo (d3-force em canvas) e Painel. Tema claro (W8): tokens em `src/index.css`,
   componentes únicos em `src/ui/`, fontes por `@fontsource`, ícones Lucide. Modo Incidente: banner e
   "Responder a todos" no painel, grupo laranja no mapa e botão "Simular pico" no chat do cliente. Aba
   "Por que a IA decidiu" no painel do ticket (link do Jaeger só funciona com o perfil `obs` e exportador OTLP).
@@ -85,11 +92,11 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Próximos passos (ordem do ADR 0009)
 
-1. Commit de "Por que a IA decidiu" (com OK do dono).
-2. Conferir a tela da operação com dados (o redesign só foi visto na fila, no mapa e no chat).
-3. Fechamento automático (30 min) e dados de demo limpos.
-4. Roteiro de resiliência ao vivo e vídeo de reserva. 5. Experimento enxuto (k6, produção) e README.
-6. Push e PRs: observabilidade → LLM → esta branch.
+1. Commit do fechamento automático, do reset de demo e do tema claro com Painel (com OK do dono).
+2. Dono: gravar o vídeo de reserva do roteiro (Kafka 60 s fora: 0 perdidas, 0 duplicadas, verificado).
+3. Experimento enxuto (k6, produção) e README.
+4. Conferir a tela da operação com dados (o redesign só foi visto na fila, no mapa e no chat).
+5. Push e PRs: observabilidade → LLM → esta branch.
 
 ## Pendências do dono
 
@@ -108,6 +115,5 @@ Caminho de uma mensagem (ADR 0003):
 - 10×: ponta a ponta p99 de 1.026 ms com a API em 4 × 5 (no limite da meta); 50× não testado.
 - Com WEB_CONCURRENCY > 1, os contadores RED do `/metrics` são de um processo só; as medidas do domínio não.
 - O enriquecimento (~1 s no Groq) chega depois de escalações imediatas; aí a categoria não muda a fila.
-- Banco de dev bagunçado para demo (equipes duplicadas, dezenas de tickets atrasados com a Ana).
 - Ninguém é avisado quando o prazo de SLA humano estoura (o mapa e o Grafana mostram, sem alerta).
 - Regex de valor é limitada ("cinco mil reais"); não testado em macOS e Linux; contratos da CloudWalk: nossos.
