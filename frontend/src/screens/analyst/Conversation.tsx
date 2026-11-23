@@ -25,8 +25,9 @@ interface ConversationProps {
 
 const BUBBLES: Record<string, string> = {
   analyst: "bg-accent/12 text-text ring-1 ring-accent/25",
-  bot: "bg-surface text-text ring-1 ring-line-strong",
+  bot: "bg-surface text-text ring-1 ring-line",
   customer: "bg-elevated text-text",
+  // Fundo do quadro da conversa: cinza bem claro, para os balões brancos se destacarem.
 };
 
 export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
@@ -39,7 +40,7 @@ export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
   }, [count]);
 
   return (
-    <section aria-label="Conversa" className="flex min-w-0 flex-1 flex-col bg-bg">
+    <section aria-label="Conversa" className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-card">
       <header className="flex min-h-14 items-center gap-3 border-b border-line px-5 py-2.5">
         <div className="min-w-0">
           <h1 className="flex items-center gap-2 truncate text-[15px] font-semibold tracking-tight">
@@ -47,24 +48,24 @@ export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
             {customerName(ticket.customer)}
             <PriorityTag priority={ticket.priority} />
           </h1>
-          <p className="mt-0.5 truncate font-mono text-[11px] text-faint">
+          <p className="mt-0.5 truncate text-xs text-faint">
             {BRAND_LABELS[ticket.brand] ?? ticket.brand} · {CHANNEL_LABELS[ticket.channel] ?? ticket.channel}
             {ticket.queue && ` · ${ticket.queue}`}
           </p>
         </div>
-        <span className={`ml-auto shrink-0 font-mono text-xs whitespace-nowrap tabular ${TONE_CLASSES[due.tone]}`}>
+        <span className={`ml-auto shrink-0 text-xs font-medium whitespace-nowrap tabular ${TONE_CLASSES[due.tone]}`}>
           {due.text}
         </span>
         {ticket.mode === "human" && <CloseTicketDialog onConfirm={onClose} />}
       </header>
 
-      <ol className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
+      <ol className="flex-1 space-y-4 overflow-y-auto bg-bg/60 px-5 py-5">
         {ticket.messages.map((message) => {
           const ours = message.sender !== "customer";
           return (
             <li key={message.id} className={`flex animate-rise ${ours ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[68%] rounded-lg px-3.5 py-2.5 ${BUBBLES[message.sender] ?? BUBBLES.customer}`}>
-                <p className="flex items-center gap-1.5 font-mono text-[11px] text-faint">
+                <p className="flex items-center gap-1.5 text-[11px] text-faint">
                   {message.sender === "bot" && <Bot aria-hidden className="size-3 text-accent" strokeWidth={2} />}
                   {SENDER_LABELS[message.sender]} · <time className="tabular">{timeOfDay(message.created_at)}</time>
                   {message.stale && <span className="text-warning"> · atrasada</span>}

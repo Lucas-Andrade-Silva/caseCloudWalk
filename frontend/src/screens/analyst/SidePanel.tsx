@@ -25,7 +25,7 @@ export function SidePanel({ token, ticket }: { token: string; ticket: TicketDeta
   }
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-line bg-bg">
+    <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl 2xl:w-80 border border-line bg-surface shadow-card">
       <div role="tablist" aria-label="Painel do ticket" onKeyDown={onKeyDown} className="flex gap-1 border-b border-line px-3">
         {TABS.map((item) => {
           const selected = item.id === tab;

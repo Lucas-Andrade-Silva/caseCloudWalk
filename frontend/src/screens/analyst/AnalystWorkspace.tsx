@@ -70,8 +70,8 @@ export function AnalystWorkspace({ token }: { token: string }) {
   return (
     <div className="flex h-screen min-w-0 flex-1 flex-col">
       <IncidentBanner token={token} onResolved={() => void work.reload()} />
-      <div className="flex min-h-0 min-w-0 flex-1">
-        <aside className="flex w-80 shrink-0 flex-col border-r border-line bg-bg">
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4 p-4">
+        <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl 2xl:w-80 border border-line bg-surface shadow-card">
           <div className="border-b border-line p-3">
             <Button variant="primary" onClick={pickNext} busy={taking} className="w-full">
               Pegar o próximo
@@ -112,7 +112,7 @@ export function AnalystWorkspace({ token }: { token: string }) {
             <SidePanel token={token} ticket={current} />
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center rounded-xl border border-line bg-surface shadow-card">
             <Inbox aria-hidden className="size-6 text-faint" strokeWidth={1.5} />
             <p className="max-w-xs text-sm text-muted">
               {selectedId ? "Carregando a conversa…" : "Pegue o próximo ticket ou escolha um dos seus."}

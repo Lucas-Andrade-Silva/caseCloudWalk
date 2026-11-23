@@ -103,7 +103,7 @@ function Setup({ onStart }: { onStart: (identity: CustomerIdentity) => void }) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4 text-text">
-      <form onSubmit={submit} className="w-full max-w-sm animate-rise space-y-5">
+      <form onSubmit={submit} className="w-full max-w-sm animate-rise space-y-5 rounded-xl border border-line bg-surface shadow-card p-8">
         <div>
           <BrandMark size="lg" />
           <h1 className="mt-8 text-2xl font-semibold tracking-tight">Falar com o atendimento</h1>
@@ -195,15 +195,15 @@ function Chat({ identity, onReset }: { identity: CustomerIdentity; onReset: () =
   const mode = conversation.data?.mode ?? null;
 
   return (
-    <main className="flex h-screen justify-center bg-bg text-text">
-      <div className="flex w-full max-w-xl flex-col border-x border-line">
+    <main className="flex h-screen justify-center bg-bg p-4 text-text">
+      <div className="flex w-full max-w-xl flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-card">
         <header className="flex min-h-14 items-center gap-3 border-b border-line px-5 py-2.5">
           <div className="min-w-0">
             <h1 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
               <BrandDot brand={identity.brand} />
               Atendimento {BRAND_LABELS[identity.brand] ?? identity.brand}
             </h1>
-            <p className="mt-0.5 truncate font-mono text-[11px] text-faint">
+            <p className="mt-0.5 truncate text-xs text-faint">
               {identity.name} · {BRAND_LABELS[identity.brand] ?? identity.brand} ·{" "}
               {CHANNEL_LABELS[identity.channel] ?? identity.channel}
             </p>
@@ -224,19 +224,19 @@ function Chat({ identity, onReset }: { identity: CustomerIdentity; onReset: () =
               <span aria-hidden className={`size-1.5 rounded-full ${mode ? STATUS_DOT[mode] : "bg-faint"}`} />
               {mode ? STATUS[mode] : "Escreva para começar."}
             </p>
-            <div role="log" aria-label="Conversa" className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+            <div role="log" aria-label="Conversa" className="flex-1 space-y-3 overflow-y-auto bg-bg/60 px-5 py-5">
               {conversation.data?.messages.map((message) => {
                 const mine = message.sender === "customer";
                 return (
                   <div key={message.seq} className={`flex animate-rise ${mine ? "justify-end" : "justify-start"}`}>
                     <div
                       className={`max-w-[78%] rounded-2xl px-3.5 py-2 ${
-                        mine ? "rounded-br-md bg-accent text-on-accent" : "rounded-bl-md bg-elevated text-text"
+                        mine ? "rounded-br-md bg-accent text-on-accent" : "rounded-bl-md bg-surface text-text ring-1 ring-line"
                       }`}
                     >
-                      {!mine && <p className="font-mono text-[11px] text-faint">{SENDER[message.sender] ?? message.sender}</p>}
+                      {!mine && <p className="text-[11px] font-medium text-faint">{SENDER[message.sender] ?? message.sender}</p>}
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
-                      <p className={`mt-0.5 text-right font-mono text-[10px] tabular ${mine ? "text-on-accent/75" : "text-faint"}`}>
+                      <p className={`mt-0.5 text-right text-[10px] tabular ${mine ? "text-on-accent/75" : "text-faint"}`}>
                         {timeOfDay(message.created_at)}
                       </p>
                     </div>

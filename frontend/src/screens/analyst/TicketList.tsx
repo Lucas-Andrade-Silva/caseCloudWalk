@@ -15,9 +15,9 @@ interface TicketListProps {
 export function TicketList({ label, empty, items, selectedId, onSelect, extra }: TicketListProps) {
   return (
     <section aria-label={label} className="border-b border-line">
-      <h2 className="flex items-center justify-between px-4 pt-4 pb-1.5 font-mono text-[11px] text-faint lowercase">
+      <h2 className="flex items-center justify-between px-4 pt-4 pb-1.5 text-xs font-semibold text-muted">
         <span>{label}</span>
-        {extra && <span className="tabular text-muted">{extra}</span>}
+        {extra && <span className="rounded-full bg-elevated px-2 py-0.5 text-[11px] text-muted tabular">{extra}</span>}
       </h2>
       {items.length === 0 ? (
         <p className="px-4 pb-4 text-xs text-faint">{empty}</p>
@@ -46,17 +46,17 @@ function TicketRow({ item, selected, onSelect }: { item: WorkItem; selected: boo
       {item.last_message && (
         <span className="mt-1 block truncate pl-3.5 text-xs text-muted">{item.last_message.text}</span>
       )}
-      <span className="mt-1.5 flex items-center gap-2 pl-3.5 font-mono text-[11px]">
+      <span className="mt-1.5 flex items-center gap-2 pl-3.5 text-[11px]">
         <span className="truncate text-faint">
           {BRAND_LABELS[item.brand] ?? item.brand} · {CHANNEL_LABELS[item.channel] ?? item.channel}
           {item.queue && ` · ${item.queue}`}
         </span>
-        <span className={`ml-auto shrink-0 tabular ${TONE_CLASSES[due.tone]}`}>{due.text}</span>
+        <span className={`ml-auto shrink-0 font-medium tabular ${TONE_CLASSES[due.tone]}`}>{due.text}</span>
       </span>
     </>
   );
 
-  const base = "block w-full rounded-md px-2.5 py-2.5 text-left";
+  const base = "block w-full rounded-lg px-2.5 py-2.5 text-left";
   if (!onSelect) return <div className={base}>{content}</div>;
 
   return (
@@ -64,7 +64,7 @@ function TicketRow({ item, selected, onSelect }: { item: WorkItem; selected: boo
       type="button"
       onClick={() => onSelect(item.id)}
       aria-current={selected ? "true" : undefined}
-      className={`${base} transition-colors duration-150 ${selected ? "bg-elevated" : "hover:bg-surface"}`}
+      className={`${base} transition-colors duration-150 ${selected ? "bg-accent/8 ring-1 ring-accent/25" : "hover:bg-elevated"}`}
     >
       {content}
     </button>

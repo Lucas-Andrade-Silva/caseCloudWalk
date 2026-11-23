@@ -6,7 +6,7 @@ type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
   primary: "bg-accent text-on-accent hover:bg-accent-strong",
-  secondary: "border border-line-strong bg-surface text-text hover:border-faint hover:bg-elevated",
+  secondary: "border border-line bg-surface text-text shadow-card hover:bg-elevated",
   ghost: "text-muted hover:bg-elevated hover:text-text",
   danger: "border border-danger/40 text-danger hover:bg-danger/10",
 };
@@ -36,7 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       type={type}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
-      className={`inline-flex shrink-0 items-center justify-center rounded-md font-medium whitespace-nowrap transition-colors duration-150 disabled:pointer-events-none disabled:opacity-40 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-lg font-medium whitespace-nowrap transition-colors duration-150 disabled:pointer-events-none disabled:opacity-40 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...rest}
     >
       {busy && <span aria-hidden className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />}

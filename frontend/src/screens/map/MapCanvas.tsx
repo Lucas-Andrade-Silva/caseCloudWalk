@@ -30,8 +30,8 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 // Mesmos valores dos tokens de index.css (o canvas não lê variáveis CSS a cada quadro).
-const COLORS = { label: "#a8a6a1", count: "#8f8d88", pending: "#f0883e", human: "#24d332", risk: "#ff6b5a", incident: "#e25813" };
-const MONO = '"IBM Plex Mono", ui-monospace, monospace';
+const COLORS = { label: "#4b5563", count: "#5f6672", pending: "#d97706", human: "#16a34a", risk: "#dc2626", incident: "#ea580c" };
+const SANS = '"Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif';
 
 // Desenha o grafo do mapa vivo em canvas, com a física do d3-force (ADR 0007, I3). Os grupos ficam em volta de
 // um círculo; os nós de cada grupo são puxados para o centro dele e se empurram para não se sobrepor.
@@ -198,13 +198,13 @@ export function MapCanvas({
         const extent = extents.get(key);
         const top = Math.max(extent?.top ?? center.y, 30);
         context.fillStyle = COLORS.label;
-        context.font = `500 12px ${MONO}`;
+        context.font = `600 12px ${SANS}`;
         // O texto inteiro fica dentro da área, mesmo nos grupos da borda.
         const half = context.measureText(center.label).width / 2 + 4;
         const x = Math.min(Math.max(extent ? extent.sumX / extent.count : center.x, half), width - half);
         context.fillText(center.label, x, top - 20);
         context.fillStyle = COLORS.count;
-        context.font = `11px ${MONO}`;
+        context.font = `11px ${SANS}`;
         context.fillText(String(center.count), x, top - 7);
       }
 
@@ -307,7 +307,7 @@ export function MapCanvas({
       />
       {hovered && hover && (
         <div
-          className="pointer-events-none absolute z-10 w-60 rounded-lg border border-line-strong bg-surface/95 p-3 text-xs shadow-[0_12px_32px_-8px_rgb(0_0_0/0.8)] backdrop-blur-sm"
+          className="pointer-events-none absolute z-10 w-60 rounded-lg border border-line bg-surface p-3 text-xs shadow-card"
           style={{ left: hover.left, top: hover.top }}
         >
           <p className="font-medium text-text">
@@ -317,8 +317,8 @@ export function MapCanvas({
             {BRAND_LABELS[hovered.brand] ?? hovered.brand} · {CHANNEL_LABELS[hovered.channel] ?? hovered.channel} ·{" "}
             {MODE_LABELS[hovered.mode] ?? hovered.mode}
           </p>
-          {hovered.queue && <p className="font-mono text-[11px] text-faint">fila {hovered.queue}</p>}
-          {hovered.mode !== "ai" && due && <p className="font-mono text-[11px] text-faint">{due.text}</p>}
+          {hovered.queue && <p className="text-[11px] text-faint">fila {hovered.queue}</p>}
+          {hovered.mode !== "ai" && due && <p className="text-[11px] text-faint">{due.text}</p>}
           {onOpen && <p className="mt-1.5 text-accent">Clique para abrir</p>}
         </div>
       )}

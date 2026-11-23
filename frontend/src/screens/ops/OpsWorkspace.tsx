@@ -12,7 +12,7 @@ export function OpsWorkspace({ token, route }: { token: string; route: string })
 
   return (
     <div className="flex h-screen min-w-0 flex-1 flex-col">
-      <nav aria-label="Operação" className="flex gap-1 border-b border-line px-4 pt-3">
+      <nav aria-label="Operação" className="flex gap-1 border-b border-line bg-surface px-6 pt-3">
         {TABS.map((tab) => {
           const active = tab.route === route;
           return (

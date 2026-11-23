@@ -224,7 +224,7 @@ function SimpleBody({
       </div>
 
       <div className="space-y-2 border-line lg:border-l lg:pl-4">
-        <p className="font-mono text-[11px] text-accent">então</p>
+        <p className="text-xs font-semibold text-accent">Então</p>
         <label className="block text-[11px] text-faint" htmlFor={`queue-${index}`}>
           Fila
         </label>

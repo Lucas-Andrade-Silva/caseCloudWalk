@@ -1,5 +1,4 @@
-// Marca da plataforma no idioma visual da CloudWalk: mono, minúsculas e o cursor de terminal em verde.
-// Não usa o logotipo da CloudWalk: é o nome deste produto.
+// Marca da plataforma: o nome em minúsculas com o cursor verde. Não usa logotipo de outra empresa.
 export function BrandMark({ size = "sm" }: { size?: "sm" | "lg" }) {
   const text = size === "lg" ? "text-xl" : "text-[13px]";
   const cursor = size === "lg" ? "h-5 w-2.5" : "h-3.5 w-[7px]";

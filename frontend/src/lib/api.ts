@@ -219,3 +219,23 @@ export interface Explanation {
 }
 
 export const fetchExplanation = (token: string, id: string) => request<Explanation>(token, `/api/tickets/${id}/explanation`);
+
+/** Números do Painel, todos lidos do banco (ADR 0009, W8). Janela de 7 dias contando hoje. */
+export interface DashboardMetrics {
+  generated_at: string;
+  time_zone: string;
+  open: { total: number; ai: number; pending_human: number; human: number; incidents: number };
+  today: { created: number; closed: number };
+  yesterday: { created: number; closed: number };
+  daily: { date: string; created: number; closed: number }[];
+  first_reply: {
+    median_seconds: number | null;
+    answered: number;
+    buckets: { key: "up_to_5m" | "5m_to_15m" | "15m_to_1h" | "over_1h" | "waiting"; count: number }[];
+  };
+  sla: { met: number; missed: number };
+  resolution: { ai: number; human: number };
+  channels: { channel: string; count: number }[];
+}
+
+export const fetchDashboard = (token: string) => request<DashboardMetrics>(token, "/api/dashboard");

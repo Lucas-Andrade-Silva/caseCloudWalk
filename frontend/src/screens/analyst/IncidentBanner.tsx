@@ -37,7 +37,7 @@ export function IncidentBanner({ token, onResolved }: { token: string; onResolve
   if (open.length === 0 && !notice) return null;
 
   return (
-    <div className="border-b border-incident/40 bg-incident/8">
+    <div className="border-b border-incident/30 bg-incident/6">
       {open.map((incident) => (
         <section
           key={incident.id}
@@ -46,11 +46,11 @@ export function IncidentBanner({ token, onResolved }: { token: string; onResolve
         >
           <span aria-hidden className="relative flex size-8 shrink-0 items-center justify-center rounded-md bg-incident/15">
             <span className="absolute inset-0 rounded-md ring-1 ring-incident/50 motion-safe:animate-ping" />
-            <TriangleAlert className="size-4 text-warning" strokeWidth={2} />
+            <TriangleAlert className="size-4 text-incident-text" strokeWidth={2} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-2 font-mono text-[11px] text-warning">
-              incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
+            <p className="flex items-center gap-2 text-xs font-medium text-incident-text">
+              Incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
               {incident.title_source !== "template" && (
                 <span className="flex items-center gap-1 text-faint">
                   · <Sparkles aria-hidden className="size-3" strokeWidth={2} /> título pela IA
@@ -59,7 +59,7 @@ export function IncidentBanner({ token, onResolved }: { token: string; onResolve
             </p>
             <p className="mt-0.5 truncate text-sm font-semibold text-text">{incident.title}</p>
           </div>
-          <p className="shrink-0 font-mono text-xs text-muted tabular">
+          <p className="shrink-0 text-xs text-muted tabular">
             {incident.open_tickets} tickets · {minutesSince(incident.opened_at)}
           </p>
           <ResolveDialog
@@ -74,7 +74,7 @@ export function IncidentBanner({ token, onResolved }: { token: string; onResolve
         </section>
       ))}
       {notice && (
-        <p role="status" className="px-5 py-2 font-mono text-xs text-success">
+        <p role="status" className="px-5 py-2 text-xs font-medium text-success">
           {notice}
         </p>
       )}
@@ -130,8 +130,8 @@ function ResolveDialog({
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-[2px]" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 animate-rise rounded-xl border border-line-strong bg-surface p-6 text-text shadow-[0_24px_64px_-12px_rgb(0_0_0/0.7)]">
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 animate-rise rounded-xl border border-line-strong bg-surface p-6 text-text shadow-[0_24px_64px_-12px_rgb(16_24_40/0.25)]">
           <Dialog.Title className="text-base font-semibold tracking-tight">Responder a todos</Dialog.Title>
           <Dialog.Description className="mt-1.5 text-xs leading-relaxed text-muted">
             {incident.title}. A mesma resposta vai para os {incident.open_tickets} clientes; os tickets com a IA ou
@@ -152,7 +152,7 @@ function ResolveDialog({
                 className={`${fieldClass} mt-1.5 resize-none bg-bg py-2.5 leading-relaxed`}
               />
               {incident.title_source !== "template" && (
-                <p className="mt-1.5 font-mono text-[11px] text-accent">Rascunho gerado por IA · {incident.model}</p>
+                <p className="mt-1.5 text-[11px] font-medium text-accent">Rascunho gerado por IA · {incident.model}</p>
               )}
             </div>
             <div>

@@ -1,6 +1,6 @@
 # ADR 0009 — Modo Incidente, "Por que a IA decidiu", resiliência ao vivo e redesign
 
-- Status: aceito em 2026-11-22 (escolhas do dono: W1, W3 e o visual de W5); W2, W4 e W6 seguem as opções
+- Status: aceito em 2026-11-22 (escolhas do dono: W1, W3, W5 e W8); W2, W4 e W6 seguem as opções
   recomendadas, adotadas sem resposta explícita do dono e reversíveis.
 - Contexto: pesquisa com três agentes em 2026-11-22. O *Trends* da Intercom roda uma vez por semana, e o
   vínculo de incidentes da Zendesk é manual, ticket a ticket. A Intercom lançou o *Fin Operator* só para
@@ -51,6 +51,15 @@ dono e reversíveis):
 - No mapa, os tickets de um incidente aberto formam um grupo próprio, em laranja.
 - Observado na pilha: a detecção na entrada usa a tag da regra antes de a categoria da LLM chegar, então a
   chave pode ser a tag (ex.: "dispositivo") enquanto o título da LLM fala da categoria.
+
+**W8. Tema claro no estilo de painel de atendimento** (dono, 2026-11-22; substitui o visual escuro de W5 e o
+tema escuro de I1 do ADR 0007). Referência visual dada pelo dono (Kirridesk, da Fikri Studio): fundo cinza,
+cards brancos, verde como cor de ação, barra lateral clara com perfil no topo e uma tela **Painel** com
+indicadores e gráficos. Adaptado sem inventar dados: todo número vem de `GET /api/dashboard` (abertos agora,
+criados e resolvidos hoje contra ontem, série de 7 dias, primeira resposta humana, SLA, quem resolveu, canais).
+"Satisfação do cliente" virou "Quem resolveu" e SLA, porque a plataforma não mede satisfação. Busca, base de
+conhecimento e fórum ficaram de fora, porque não existem. Contraste AA conferido; paletas dos gráficos
+validadas para daltonismo. A identidade (logotipo e nome) da referência não é usada.
 
 ## Consequências
 

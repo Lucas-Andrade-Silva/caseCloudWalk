@@ -112,13 +112,13 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
   const atRiskTotal = clusters.reduce((sum, cluster) => sum + cluster.atRisk, 0);
 
   return (
-    <div className="flex h-screen min-w-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex h-screen min-w-0 flex-1 gap-4 p-4">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-card">
         <header className="flex min-h-14 items-center gap-4 border-b border-line px-5 py-2.5">
           <h1 className="text-[15px] font-semibold tracking-tight">Mapa vivo</h1>
-          <p className="font-mono text-xs text-muted tabular">{total} tickets abertos</p>
-          {hidden > 0 && <p className="font-mono text-xs text-faint">+{hidden} fora do desenho</p>}
-          <p className={`ml-auto flex items-center gap-2 font-mono text-xs ${status === "live" ? "text-success" : "text-warning"}`}>
+          <p className="text-sm text-muted tabular">{total} tickets abertos</p>
+          {hidden > 0 && <p className="text-xs text-faint">+{hidden} fora do desenho</p>}
+          <p className={`ml-auto flex items-center gap-2 text-xs font-medium ${status === "live" ? "text-success" : "text-warning"}`}>
             <span aria-hidden className="relative flex size-2">
               {status === "live" && <span className="absolute inset-0 rounded-full bg-success opacity-60 motion-safe:animate-ping" />}
               <span className={`relative size-2 rounded-full ${status === "live" ? "bg-success" : "bg-warning"}`} />
@@ -127,16 +127,16 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
           </p>
         </header>
         {incidents.length > 0 && (
-          <section aria-label="Incidentes abertos" className="border-b border-incident/40 bg-incident/8 px-5 py-2.5">
+          <section aria-label="Incidentes abertos" className="border-b border-incident/30 bg-incident/6 px-5 py-2.5">
             <ul className="space-y-1">
               {incidents.map((incident) => (
                 <li key={incident.id} className="flex animate-rise items-center gap-3 text-sm">
-                  <TriangleAlert aria-hidden className="size-4 shrink-0 text-warning" strokeWidth={2} />
-                  <span className="font-mono text-[11px] text-warning">
-                    incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
+                  <TriangleAlert aria-hidden className="size-4 shrink-0 text-incident-text" strokeWidth={2} />
+                  <span className="text-xs font-medium text-incident-text">
+                    Incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
                   </span>
                   <span className="min-w-0 truncate font-semibold text-text">{incident.title}</span>
-                  <span className="ml-auto shrink-0 font-mono text-xs text-muted tabular">{incident.open_tickets} tickets</span>
+                  <span className="ml-auto shrink-0 text-xs text-muted tabular">{incident.open_tickets} tickets</span>
                 </li>
               ))}
             </ul>
@@ -158,18 +158,18 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
         </div>
       </div>
 
-      <aside className="w-72 shrink-0 overflow-y-auto border-l border-line p-5">
+      <aside className="w-72 shrink-0 overflow-y-auto p-5 rounded-xl border border-line bg-surface shadow-card">
         <h2 className="text-xs font-semibold text-text">Grupos</h2>
         {clusters.length === 0 ? (
           <p className="mt-2 text-xs text-faint">Nenhum ticket aberto.</p>
         ) : (
           <ul aria-label="Grupos do mapa" className="mt-3 space-y-0.5">
             {clusters.map((cluster) => (
-              <li key={cluster.key} className="flex h-7 items-center gap-2.5 rounded-md px-1.5 text-xs hover:bg-surface">
+              <li key={cluster.key} className="flex h-7 items-center gap-2.5 rounded-md px-1.5 text-xs hover:bg-elevated">
                 <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: colorFor(cluster.key) }} />
                 <span className="min-w-0 flex-1 truncate text-text">{cluster.label}</span>
-                {cluster.atRisk > 0 && <span className="font-mono text-[11px] text-danger">{cluster.atRisk} em risco</span>}
-                <span className="w-6 text-right font-mono text-muted tabular">{cluster.count}</span>
+                {cluster.atRisk > 0 && <span className="text-[11px] font-medium text-danger">{cluster.atRisk} em risco</span>}
+                <span className="w-6 text-right font-medium text-muted tabular">{cluster.count}</span>
               </li>
             ))}
           </ul>
@@ -184,7 +184,7 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
             Anel: <span className="text-warning">esperando humano</span> ou <span className="text-success">com humano</span>; sem anel, com a IA
           </li>
           <li>
-            Anel <span className="text-warning">laranja tracejado</span>: ticket de um incidente aberto
+            Anel <span className="text-incident-text">laranja tracejado</span>: ticket de um incidente aberto
           </li>
           <li>
             Pulso <span className="text-danger">vermelho</span>: prazo humano perto de vencer, ou agente calado há 20 s

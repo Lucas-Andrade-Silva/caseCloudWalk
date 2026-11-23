@@ -28,7 +28,7 @@ export function SignIn({ onSubmit, error, busy }: SignInProps) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4 text-text">
-      <div className="w-full max-w-sm animate-rise">
+      <div className="w-full max-w-sm animate-rise rounded-xl border border-line bg-surface shadow-card p-8">
         <BrandMark size="lg" />
         <h1 className="mt-8 text-2xl font-semibold tracking-tight">Entrar</h1>
         <p className="mt-1.5 text-sm text-muted">Atendimento AI-first da InfinitePay e da JIM.</p>
@@ -57,7 +57,7 @@ export function SignIn({ onSubmit, error, busy }: SignInProps) {
 
         {import.meta.env.DEV && (
           <section className="mt-10 border-t border-line pt-5" aria-label="Pessoas de teste">
-            <p className="font-mono text-[11px] text-faint">desenvolvimento · entrar como</p>
+            <p className="text-xs font-medium text-faint">Desenvolvimento: entrar como</p>
             <div className="mt-3 grid grid-cols-2 gap-2">
               {DEV_PEOPLE.map((person) => (
                 <button
@@ -65,7 +65,7 @@ export function SignIn({ onSubmit, error, busy }: SignInProps) {
                   type="button"
                   disabled={busy}
                   onClick={() => onSubmit(person.token)}
-                  className="group flex h-10 items-center justify-between rounded-md border border-line bg-surface px-3 text-left text-sm text-text transition-colors duration-150 hover:border-line-strong hover:bg-elevated disabled:opacity-40"
+                  className="group flex h-10 items-center justify-between rounded-lg border border-line bg-surface px-3 text-left text-sm text-text transition-colors duration-150 hover:border-line-strong hover:bg-elevated disabled:opacity-40"
                 >
                   <span>
                     {person.name}

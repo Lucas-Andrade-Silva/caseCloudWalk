@@ -41,14 +41,14 @@ de IA. Dados sintéticos apenas (LGPD). Roda local em Docker Compose. Ver `docs/
 - Telas: entrada por token, painel do analista, chat do cliente simulado, editor da operação (filas, equipes,
   regras), mapa vivo; em construção: Modo Incidente e "Por que a IA decidiu" (ADR 0009).
 - Stack existente: React 19, Vite, TypeScript, Tailwind 4, Radix; Rails 8 API, Kafka, Sidekiq, ActionCable.
-- Tema escuro único e denso (ADR 0007, I1). Português do Brasil na interface.
+- Tema claro (ADR 0009, W8), denso nas telas de trabalho. Português do Brasil na interface.
 
 ## Brand Commitments
 
-- Dono escolheu o **visual da CloudWalk** para a plataforma inteira (2026-11-22). Identidade pública conferida
-  no CSS de cloudwalk.io: fundo quase preto (#0d0d0d, #111, #121212), branco quente (#ecebe9), verde
-  terminal (#24d332, #06dd55), laranja (#e25813), azul (#467afc), tipografia IBM Plex Mono, BDO Grotesk e
-  Cera Pro. BDO Grotesk e Cera Pro não têm pacote livre: a interface usa IBM Plex Mono e Inter.
+- Visual atual (dono, 2026-11-22, ADR 0009 W8): tema claro de painel de atendimento, a partir de uma referência
+  dada pelo dono (Kirridesk, da Fikri Studio): fundo cinza, cards brancos, verde como ação, barra lateral clara.
+  Substituiu o visual escuro da CloudWalk escolhido antes no mesmo dia. Inter no texto; IBM Plex Mono só em
+  código e identificadores. Não usar logotipo ou nome de outra empresa.
 - InfinitePay e JIM aparecem só como identificação de qual marca é o ticket; não há guia oficial dessas cores.
 
 ## Evidence on Hand

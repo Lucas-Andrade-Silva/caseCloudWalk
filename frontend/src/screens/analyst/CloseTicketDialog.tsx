@@ -53,8 +53,8 @@ export function CloseTicketDialog({ onConfirm }: CloseTicketDialogProps) {
         </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-[2px]" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 animate-rise rounded-xl border border-line-strong bg-surface p-6 text-text shadow-[0_24px_64px_-12px_rgb(0_0_0/0.7)]">
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 animate-rise rounded-xl border border-line-strong bg-surface p-6 text-text shadow-[0_24px_64px_-12px_rgb(16_24_40/0.25)]">
           <Dialog.Title className="text-base font-semibold tracking-tight">Fechar ticket</Dialog.Title>
           <Dialog.Description className="mt-1 text-xs text-muted">
             Como foi resolvido? A resolução entra na memória do cliente.
