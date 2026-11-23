@@ -1,0 +1,14 @@
+﻿{
+  "ok": true,
+  "ledger_entries": 16382,
+  "unique_messages": 12599,
+  "not_acknowledged": 0,
+  "ingested": 12599,
+  "answered": 1421,
+  "escalated": 11178
+}
+lost: 0 violação(ões)
+duplicates: 0 violação(ões)
+order: 0 violação(ões)
+orphans: 0 violação(ões)
+INVARIANTES OK

@@ -1,0 +1,15 @@
+﻿aguardando: 0 no outbox, 1 ticket(s) esperando o agente
+{
+  "ok": true,
+  "ledger_entries": 16382,
+  "unique_messages": 12599,
+  "not_acknowledged": 0,
+  "ingested": 12599,
+  "answered": 4614,
+  "escalated": 7985
+}
+lost: 0 violação(ões)
+duplicates: 0 violação(ões)
+order: 0 violação(ões)
+orphans: 0 violação(ões)
+INVARIANTES OK

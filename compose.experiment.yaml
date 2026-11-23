@@ -1,0 +1,20 @@
+# Experimento oficial (playbook §9; ADR 0009, W6): gerador k6 na mesma rede da pilha em modo de produção.
+# Use junto com o piloto:
+#   docker compose -p helpdesk-pilot -f compose.yaml -f compose.pilot.yaml -f compose.experiment.yaml ...
+# O roteiro completo está em scripts/experiment/run.ps1. Só dados sintéticos.
+services:
+  k6:
+    # 2.3.0: a versão mais nova publicada há pelo menos 14 dias (2026-10-24).
+    image: grafana/k6:2.3.0
+    profiles: ["experiment"]
+    # O gerador divide a máquina com a pilha: limite explícito, declarado como limitação no relatório.
+    cpus: 2
+    environment:
+      BASE_URL: http://api:3000
+      SECRET: ${CHANNEL_WEBHOOK_SECRETS:-dev-channel-secret}
+    volumes:
+      - ./experiment/k6:/scripts:ro
+      - ./backend/tmp/experiment:/results
+    depends_on:
+      api:
+        condition: service_healthy
