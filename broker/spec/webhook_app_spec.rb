@@ -43,9 +43,11 @@ RSpec.describe Broker::WebhookApp do
     response = deliver
 
     expect(response.status).to eq(204)
-    expect(producer.sent).to eq([
+    # Toda publicação leva o contexto W3C do span de publicação (ADR 0008, O2); os demais headers seguem exatos.
+    expect(producer.sent).to match([
       { topic: "helpdesk.messages", key: "ticket-1", payload: '{"seq":1}',
-        headers: { "brand_id" => "jim", "event_id" => "evt-1" } }
+        headers: { "brand_id" => "jim", "event_id" => "evt-1",
+                   "traceparent" => a_string_matching(/\A00-\h{32}-\h{16}-0[01]\z/) } }
     ])
   end
 

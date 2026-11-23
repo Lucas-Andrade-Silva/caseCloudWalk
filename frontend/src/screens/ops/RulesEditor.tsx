@@ -26,8 +26,8 @@ const STATUS_LABELS: Record<RuleSetSummary["status"], string> = {
 };
 
 const BRANDS = ["infinitepay", "jim"];
-const button = "h-8 rounded-md border border-line px-3 text-xs text-text hover:bg-elevated disabled:opacity-40";
-const primary = "h-8 rounded-md bg-accent px-3 text-xs font-medium text-white hover:opacity-90 disabled:opacity-40";
+const button = "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-xs font-medium text-text transition-colors duration-150 hover:border-faint hover:bg-elevated disabled:pointer-events-none disabled:opacity-40";
+const primary = "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md bg-accent px-3 text-xs font-medium text-on-accent transition-colors duration-150 hover:bg-accent-strong disabled:pointer-events-none disabled:opacity-40";
 
 // Erros do validador vêm com caminho ("rules[0].when.all[1].value"); a tela mostra no cartão da regra.
 function errorsByRule(error: unknown): Map<number, string[]> {
@@ -157,7 +157,7 @@ export function RulesEditor({ token }: { token: string }) {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b border-line px-6 py-3">
+      <div className="flex min-h-14 flex-wrap items-center gap-3 border-b border-line px-6 py-2.5">
         <label htmlFor="rules-brand" className="text-xs text-muted">
           Marca
         </label>
@@ -165,7 +165,7 @@ export function RulesEditor({ token }: { token: string }) {
           id="rules-brand"
           value={brand}
           onChange={(event) => setBrand(event.target.value)}
-          className="h-8 rounded-md border border-line bg-bg px-2 text-xs text-text"
+          className="h-8 rounded-md border border-line-strong bg-surface px-2.5 text-xs text-text outline-none transition-colors duration-150 hover:border-faint focus:border-accent disabled:opacity-60 disabled:hover:border-line-strong"
         >
           {BRANDS.map((value) => (
             <option key={value} value={value}>
@@ -180,7 +180,7 @@ export function RulesEditor({ token }: { token: string }) {
           id="rules-version"
           value={selected?.id ?? ""}
           onChange={(event) => void open(event.target.value)}
-          className="h-8 rounded-md border border-line bg-bg px-2 text-xs text-text"
+          className="h-8 rounded-md border border-line-strong bg-surface px-2.5 text-xs text-text outline-none transition-colors duration-150 hover:border-faint focus:border-accent disabled:opacity-60 disabled:hover:border-line-strong"
         >
           {versions.map((version) => (
             <option key={version.id} value={version.id}>
@@ -296,8 +296,8 @@ export function RulesEditor({ token }: { token: string }) {
         {editable && <p className="text-xs text-faint">A primeira regra que casar decide. Ordem importa.</p>}
 
         {dryRun && (
-          <section aria-label="Resultado da simulação" className="rounded-lg border border-line p-4">
-            <h2 className="text-xs font-medium text-muted">Simulação</h2>
+          <section aria-label="Resultado da simulação" className="animate-rise rounded-lg border border-info/30 bg-info/5 p-4">
+            <h2 className="text-sm font-semibold text-info">Simulação</h2>
             <p className="mt-1 text-sm">
               {dryRun.changed} de {dryRun.evaluated} tickets recentes mudariam
               {dryRun.current_version ? ` em relação à v${dryRun.current_version}` : ""}.

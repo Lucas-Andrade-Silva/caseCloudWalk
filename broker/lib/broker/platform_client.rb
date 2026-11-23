@@ -17,7 +17,8 @@ module Broker
     # Envia a resposta do agente e devolve o status HTTP da plataforma.
     def post_reply(json_body)
       headers = { "Content-Type" => "application/json", "Authorization" => "Bearer #{@token}" }
-      @transport.call(@uri, headers, json_body)
+      # O trace volta à plataforma: a API continua o mesmo trace (ADR 0008, O2).
+      @transport.call(@uri, Tracing.with_context(headers), json_body)
     end
 
     private

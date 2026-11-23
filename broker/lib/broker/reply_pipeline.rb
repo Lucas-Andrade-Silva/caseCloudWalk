@@ -41,7 +41,20 @@ module Broker
       @stages = stages
     end
 
+    # Cada resposta é tratada dentro do trace que veio nos headers do Kafka (ADR 0008, O2).
     def handle(message, now: Time.now)
+      OpenTelemetry::Context.with_current(Tracing.from_headers(message.headers)) do
+        Tracing.tracer.in_span("kafka consume #{message.topic}", kind: :consumer,
+                                                                 attributes: { "messaging.system" => "kafka",
+                                                                               "messaging.destination.name" => message.topic }) do
+          decide(message, now)
+        end
+      end
+    end
+
+    private
+
+    def decide(message, now)
       stage = @stages.fetch(message.topic)
       wait = (message.timestamp + stage.delay - now).ceil
       return Action.pause(wait) if wait.positive?
@@ -56,7 +69,6 @@ module Broker
       Action.ack
     end
 
-    private
 
     def move_on(message, stage, error)
       attempt = message.headers.fetch("x-attempt", "0").to_i + 1

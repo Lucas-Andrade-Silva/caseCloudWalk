@@ -229,7 +229,7 @@ RSpec.describe "Trabalho do analista" do
       expect(body).to include("id" => ticket.id, "mode" => "pending_human", "brand" => "infinitepay",
                               "queue" => "infinitepay-atendimento", "priority" => "p3", "tags" => [],
                               "customer" => { "external_id" => "c-1", "name" => "Maria" },
-                              "first_human_response_at" => nil)
+                              "first_human_response_at" => nil, "llm_facts" => {})
       expect(body["handoff_brief"]).to include("reason" => "teste")
       expect(body["messages"].map { |m| [ m["seq"], m["sender"] ] }).to eq([ [ 1, "customer" ] ])
       expect(body["events"].map { |e| e["kind"] }).to eq(%w[ticket.opened message.received ticket.escalated])

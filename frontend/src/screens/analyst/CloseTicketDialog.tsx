@@ -1,7 +1,10 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { CheckCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { RESOLUTION_CODES, type ResolutionCode } from "../../lib/api";
 import { RESOLUTION_LABELS } from "../../lib/format";
+import { Button } from "../../ui/Button";
+import { fieldClass, labelClass } from "../../ui/field";
 
 const NOTE_MAX = 2000;
 
@@ -44,17 +47,15 @@ export function CloseTicketDialog({ onConfirm }: CloseTicketDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={reset}>
       <Dialog.Trigger asChild>
-        <button
-          type="button"
-          className="h-7 rounded-md border border-line px-2.5 text-xs text-text hover:bg-elevated"
-        >
+        <Button size="sm">
+          <CheckCheck aria-hidden className="size-3.5" strokeWidth={2} />
           Fechar ticket
-        </button>
+        </Button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-line bg-surface p-5 text-text shadow-2xl">
-          <Dialog.Title className="text-sm font-semibold">Fechar ticket</Dialog.Title>
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 animate-rise rounded-xl border border-line-strong bg-surface p-6 text-text shadow-[0_24px_64px_-12px_rgb(16_24_40/0.25)]">
+          <Dialog.Title className="text-base font-semibold tracking-tight">Fechar ticket</Dialog.Title>
           <Dialog.Description className="mt-1 text-xs text-muted">
             Como foi resolvido? A resolução entra na memória do cliente.
           </Dialog.Description>
@@ -66,8 +67,8 @@ export function CloseTicketDialog({ onConfirm }: CloseTicketDialogProps) {
                 {RESOLUTION_CODES.map((value) => (
                   <label
                     key={value}
-                    className={`flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm ${
-                      code === value ? "border-accent bg-elevated" : "border-line hover:bg-elevated"
+                    className={`flex h-10 cursor-pointer items-center gap-2.5 rounded-md border px-3 text-sm transition-colors duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+                      code === value ? "border-accent bg-accent/8 text-text" : "border-line-strong text-muted hover:bg-elevated hover:text-text"
                     }`}
                   >
                     <input
@@ -85,7 +86,7 @@ export function CloseTicketDialog({ onConfirm }: CloseTicketDialogProps) {
             </fieldset>
 
             <div>
-              <label htmlFor="resolution-note" className="text-xs text-muted">
+              <label htmlFor="resolution-note" className={labelClass}>
                 Nota (opcional)
               </label>
               <textarea
@@ -94,7 +95,7 @@ export function CloseTicketDialog({ onConfirm }: CloseTicketDialogProps) {
                 maxLength={NOTE_MAX}
                 onChange={(event) => setNote(event.target.value)}
                 rows={3}
-                className="mt-1 w-full resize-none rounded-md border border-line bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+                className={`${fieldClass} mt-1.5 resize-none bg-bg py-2`}
               />
             </div>
 
@@ -106,17 +107,11 @@ export function CloseTicketDialog({ onConfirm }: CloseTicketDialogProps) {
 
             <div className="flex justify-end gap-2">
               <Dialog.Close asChild>
-                <button type="button" className="h-8 rounded-md px-3 text-sm text-muted hover:text-text">
-                  Cancelar
-                </button>
+                <Button variant="ghost">Cancelar</Button>
               </Dialog.Close>
-              <button
-                type="submit"
-                disabled={!code || busy}
-                className="h-8 rounded-md bg-accent px-3 text-sm font-medium text-white disabled:opacity-40"
-              >
+              <Button type="submit" variant="primary" disabled={!code} busy={busy}>
                 Fechar
-              </button>
+              </Button>
             </div>
           </form>
         </Dialog.Content>

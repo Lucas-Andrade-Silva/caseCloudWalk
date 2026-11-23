@@ -43,6 +43,7 @@ module Api
         escalated_at: ticket.escalated_at&.iso8601(3),
         first_response_due_at: ticket.first_response_due_at&.iso8601(3),
         first_human_response_at: ticket.first_human_response_at&.iso8601(3),
+        llm_facts: ticket.llm_facts,
         closed_at: ticket.closed_at&.iso8601(3),
         resolution_code: ticket.resolution_code,
         handoff_brief: ticket.handoff_brief

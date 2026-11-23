@@ -76,6 +76,7 @@ function Platform() {
   return (
     <Shell
       me={state.me}
+      token={state.token}
       onSignOut={() => {
         clearToken();
         setState({ kind: "signed-out", error: null, busy: false });

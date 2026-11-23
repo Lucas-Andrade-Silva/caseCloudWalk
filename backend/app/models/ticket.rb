@@ -23,6 +23,7 @@ class Ticket < ApplicationRecord
   belongs_to :queue, class_name: "TicketQueue", optional: true
   belongs_to :assignee, class_name: "User", optional: true
   belongs_to :priority_level, foreign_key: :priority, optional: true
+  belongs_to :incident, optional: true
   has_many :messages
   has_many :conversation_events
   has_one :closing_summary

@@ -1,0 +1,50 @@
+{
+  "stages": [
+    {
+      "stage": "1x",
+      "sent": 391,
+      "redeliveries": 90,
+      "rate_per_s": 5.0,
+      "refused": 0,
+      "ack_p50_ms": 42.601841,
+      "ack_p99_ms": 86.491711,
+      "answered": 287,
+      "escalated": 14,
+      "e2e_p50_ms": 264,
+      "e2e_p99_ms": 412,
+      "outbox_p99_ms": 76625
+    },
+    {
+      "stage": "10x-kafka",
+      "sent": 15467,
+      "redeliveries": 3568,
+      "rate_per_s": 49.6,
+      "refused": 0,
+      "ack_p50_ms": 24.167645,
+      "ack_p99_ms": 118.993751,
+      "answered": 1142,
+      "escalated": 10757,
+      "e2e_p50_ms": 588,
+      "e2e_p99_ms": 20571,
+      "outbox_p99_ms": 77003
+    },
+    {
+      "stage": "1x-volta",
+      "sent": 512,
+      "redeliveries": 113,
+      "rate_per_s": 6.7,
+      "refused": 0,
+      "ack_p50_ms": 22.900068,
+      "ack_p99_ms": 46.580622,
+      "answered": 1,
+      "escalated": 398,
+      "e2e_p50_ms": 378,
+      "e2e_p99_ms": 378,
+      "outbox_p99_ms": 197
+    }
+  ],
+  "totals": {
+    "sent": 16370,
+    "unique_messages": 12599
+  }
+}

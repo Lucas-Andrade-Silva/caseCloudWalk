@@ -1,0 +1,4 @@
+﻿fase        envios   msg/s  reent  recus    ACK p50    ACK p99   respond    escal    e2e p50    e2e p99 outbox p99
+1x             388     5.0     87      0      43 ms      93 ms       274       27    1455 ms    2341 ms     345 ms
+10x-caos     15481    49.6   3583      0      29 ms     166 ms      4359     7539    1571 ms   14057 ms     368 ms
+1x-volta       513     6.7    113      0      23 ms      43 ms        35      365    1200 ms    2215 ms     213 ms

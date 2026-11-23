@@ -28,6 +28,10 @@ module Broker
   end
 end
 
+require "broker/tracing"
+Broker::Tracing.configure!
+
+require "broker/http"
 require "broker/signature"
 require "broker/webhook_app"
 require "broker/platform_client"

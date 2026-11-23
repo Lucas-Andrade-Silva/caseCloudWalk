@@ -25,7 +25,7 @@ module Outbox
         next if parked_keys.include?(event.key)
 
         begin
-          @producer.produce_sync(message_for(event))
+          deliver(event)
           published_ids << event.id
         rescue WebhookPublisher::Rejected => error
           park(event, error)
@@ -42,6 +42,25 @@ module Outbox
     end
 
     private
+
+    # Entrega dentro de um span filho do trace que criou o evento; o webhook leva o contexto desse span,
+    # e o broker o passa adiante pelo Kafka (ADR 0008, O2).
+    def deliver(event)
+      parent = OpenTelemetry.propagation.extract(event.headers)
+      OpenTelemetry::Context.with_current(parent) do
+        TRACER.in_span("outbox deliver", kind: :producer,
+                                          attributes: { "messaging.destination.name" => event.topic,
+                                                        "messaging.message.id" => event.event_id }) do
+          message = message_for(event)
+          carrier = {}
+          OpenTelemetry.propagation.inject(carrier)
+          message[:headers] = message[:headers].merge(carrier)
+          @producer.produce_sync(message)
+        end
+      end
+    end
+
+    TRACER = OpenTelemetry.tracer_provider.tracer("helpdesk.outbox")
 
     def message_for(event)
       {

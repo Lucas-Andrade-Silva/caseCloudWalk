@@ -178,6 +178,30 @@ ALTER SEQUENCE public.inbound_events_id_seq OWNED BY public.inbound_events.id;
 
 
 --
+-- Name: incidents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.incidents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    brand_id uuid NOT NULL,
+    key character varying NOT NULL,
+    label character varying NOT NULL,
+    status character varying DEFAULT 'open'::character varying NOT NULL,
+    title character varying NOT NULL,
+    draft_reply text NOT NULL,
+    title_source character varying DEFAULT 'template'::character varying NOT NULL,
+    prompt_version character varying,
+    model character varying,
+    opened_at timestamp(6) without time zone NOT NULL,
+    resolved_at timestamp(6) without time zone,
+    resolved_by_id uuid,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT incidents_status_check CHECK (((status)::text = ANY ((ARRAY['open'::character varying, 'resolved'::character varying])::text[])))
+);
+
+
+--
 -- Name: memory_erasures; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -370,9 +394,11 @@ CREATE TABLE public.tickets (
     closed_at timestamp with time zone,
     resolution_code text,
     resolution_note text,
+    llm_facts jsonb DEFAULT '{}'::jsonb NOT NULL,
+    incident_id uuid,
     CONSTRAINT tickets_channel_valid CHECK ((channel = ANY (ARRAY['app_chat'::text, 'whatsapp'::text, 'email'::text]))),
     CONSTRAINT tickets_mode_valid CHECK ((mode = ANY (ARRAY['ai'::text, 'pending_human'::text, 'human'::text, 'closed'::text]))),
-    CONSTRAINT tickets_resolution_code_valid CHECK (((resolution_code IS NULL) OR (resolution_code = ANY (ARRAY['resolved'::text, 'no_customer_response'::text, 'duplicate'::text, 'forwarded'::text])))),
+    CONSTRAINT tickets_resolution_code_valid CHECK (((resolution_code IS NULL) OR (resolution_code = ANY (ARRAY['resolved'::text, 'no_customer_response'::text, 'duplicate'::text, 'forwarded'::text, 'ai_resolved'::text])))),
     CONSTRAINT tickets_resolution_note_length CHECK ((char_length(resolution_note) <= 2000))
 );
 
@@ -474,6 +500,14 @@ ALTER TABLE ONLY public.decisions
 
 ALTER TABLE ONLY public.inbound_events
     ADD CONSTRAINT inbound_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: incidents incidents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT incidents_pkey PRIMARY KEY (id);
 
 
 --
@@ -622,6 +656,20 @@ CREATE UNIQUE INDEX index_inbound_events_on_channel_and_provider_message_id ON p
 
 
 --
+-- Name: index_incidents_on_brand_id_and_status_and_opened_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_incidents_on_brand_id_and_status_and_opened_at ON public.incidents USING btree (brand_id, status, opened_at);
+
+
+--
+-- Name: index_incidents_open_by_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_incidents_open_by_key ON public.incidents USING btree (brand_id, key) WHERE ((status)::text = 'open'::text);
+
+
+--
 -- Name: index_memory_erasures_on_customer_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -755,6 +803,13 @@ CREATE INDEX index_tickets_on_brand_id_and_customer_id_and_created_at ON public.
 
 
 --
+-- Name: index_tickets_on_incident_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_tickets_on_incident_id ON public.tickets USING btree (incident_id);
+
+
+--
 -- Name: index_tickets_one_open_per_customer_channel; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -773,6 +828,14 @@ CREATE INDEX index_tickets_waiting_for_human ON public.tickets USING btree (queu
 --
 
 CREATE UNIQUE INDEX index_users_on_token_digest ON public.users USING btree (token_digest);
+
+
+--
+-- Name: tickets fk_rails_150d7cf276; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tickets
+    ADD CONSTRAINT fk_rails_150d7cf276 FOREIGN KEY (incident_id) REFERENCES public.incidents(id);
 
 
 --
@@ -944,11 +1007,27 @@ ALTER TABLE ONLY public.conversation_events
 
 
 --
+-- Name: incidents fk_rails_ab23b80369; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT fk_rails_ab23b80369 FOREIGN KEY (resolved_by_id) REFERENCES public.users(id);
+
+
+--
 -- Name: memory_erasures fk_rails_bce15b3a44; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.memory_erasures
     ADD CONSTRAINT fk_rails_bce15b3a44 FOREIGN KEY (brand_id) REFERENCES public.brands(id);
+
+
+--
+-- Name: incidents fk_rails_c2f821d3c1; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT fk_rails_c2f821d3c1 FOREIGN KEY (brand_id) REFERENCES public.brands(id);
 
 
 --
@@ -998,6 +1077,9 @@ ALTER TABLE ONLY public.inbound_events
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261122000010'),
+('20261122000009'),
+('20261118000008'),
 ('20261116000007'),
 ('20261116000006'),
 ('20261115000005'),

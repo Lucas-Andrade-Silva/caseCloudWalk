@@ -1,0 +1,50 @@
+{
+  "stages": [
+    {
+      "stage": "1x",
+      "sent": 388,
+      "redeliveries": 87,
+      "rate_per_s": 5.0,
+      "refused": 0,
+      "ack_p50_ms": 43.145916,
+      "ack_p99_ms": 93.13373,
+      "answered": 274,
+      "escalated": 27,
+      "e2e_p50_ms": 1455,
+      "e2e_p99_ms": 2341,
+      "outbox_p99_ms": 345
+    },
+    {
+      "stage": "10x-caos",
+      "sent": 15481,
+      "redeliveries": 3583,
+      "rate_per_s": 49.6,
+      "refused": 0,
+      "ack_p50_ms": 28.559617,
+      "ack_p99_ms": 165.99163,
+      "answered": 4359,
+      "escalated": 7539,
+      "e2e_p50_ms": 1571,
+      "e2e_p99_ms": 14057,
+      "outbox_p99_ms": 368
+    },
+    {
+      "stage": "1x-volta",
+      "sent": 513,
+      "redeliveries": 113,
+      "rate_per_s": 6.7,
+      "refused": 0,
+      "ack_p50_ms": 23.478055,
+      "ack_p99_ms": 43.420325,
+      "answered": 35,
+      "escalated": 365,
+      "e2e_p50_ms": 1200,
+      "e2e_p99_ms": 2215,
+      "outbox_p99_ms": 213
+    }
+  ],
+  "totals": {
+    "sent": 16382,
+    "unique_messages": 12599
+  }
+}

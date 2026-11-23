@@ -1,3 +1,4 @@
+import { Inbox } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   closeTicket,
@@ -9,8 +10,10 @@ import {
 } from "../../lib/api";
 import { navigate, useHashRoute } from "../../lib/useHashRoute";
 import { usePolling } from "../../lib/usePolling";
-import { ContextPanel } from "./ContextPanel";
+import { Button } from "../../ui/Button";
+import { SidePanel } from "./SidePanel";
 import { Conversation } from "./Conversation";
+import { IncidentBanner } from "./IncidentBanner";
 import { TicketList } from "./TicketList";
 
 const WORK_REFRESH_MS = 5_000;
@@ -65,61 +68,58 @@ export function AnalystWorkspace({ token }: { token: string }) {
   const waitingCount = work.data?.waiting_count ?? 0;
 
   return (
-    <div className="flex h-screen min-w-0 flex-1">
-      <aside className="flex w-80 shrink-0 flex-col border-r border-line">
-        <div className="border-b border-line p-3">
-          <button
-            type="button"
-            onClick={pickNext}
-            disabled={taking}
-            className="h-8 w-full rounded-md bg-accent text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"
-          >
-            Pegar o próximo
-          </button>
-          {notice && (
-            <p role="status" className="mt-2 text-xs text-muted">
-              {notice}
-            </p>
-          )}
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {work.data ? (
-            <>
-              <TicketList
-                label="Com você"
-                empty="Nenhum ticket com você."
-                items={work.data.mine}
-                selectedId={selectedId}
-                onSelect={(id) => navigate(`/fila/${id}`)}
-              />
-              <TicketList
-                label="Esperando nas suas filas"
-                empty="Fila vazia."
-                items={work.data.waiting}
-                selectedId={selectedId}
-                extra={waitingCount > 0 ? String(waitingCount) : undefined}
-              />
-            </>
-          ) : (
-            <p className="p-3 text-xs text-faint">{work.error ? "Não foi possível carregar a fila." : "Carregando…"}</p>
-          )}
-        </div>
-      </aside>
+    <div className="flex h-screen min-w-0 flex-1 flex-col">
+      <IncidentBanner token={token} onResolved={() => void work.reload()} />
+      <div className="flex min-h-0 min-w-0 flex-1 gap-4 p-4">
+        <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl 2xl:w-80 border border-line bg-surface shadow-card">
+          <div className="border-b border-line p-3">
+            <Button variant="primary" onClick={pickNext} busy={taking} className="w-full">
+              Pegar o próximo
+            </Button>
+            {notice && (
+              <p role="status" className="mt-2 text-xs text-muted">
+                {notice}
+              </p>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {work.data ? (
+              <>
+                <TicketList
+                  label="Com você"
+                  empty="Nenhum ticket com você."
+                  items={work.data.mine}
+                  selectedId={selectedId}
+                  onSelect={(id) => navigate(`/fila/${id}`)}
+                />
+                <TicketList
+                  label="Esperando nas suas filas"
+                  empty="Fila vazia."
+                  items={work.data.waiting}
+                  selectedId={selectedId}
+                  extra={waitingCount > 0 ? String(waitingCount) : undefined}
+                />
+              </>
+            ) : (
+              <p className="p-4 text-xs text-faint">{work.error ? "Não foi possível carregar a fila." : "Carregando…"}</p>
+            )}
+          </div>
+        </aside>
 
-      {current ? (
-        <>
-          <Conversation ticket={current} onSend={send} onClose={close} />
-          <aside className="w-80 shrink-0 border-l border-line">
-            <ContextPanel ticket={current} />
-          </aside>
-        </>
-      ) : (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-faint">
-            {selectedId ? "Carregando a conversa…" : "Pegue o próximo ticket ou escolha um dos seus."}
-          </p>
-        </div>
-      )}
+        {current ? (
+          <>
+            <Conversation ticket={current} onSend={send} onClose={close} />
+            <SidePanel token={token} ticket={current} />
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center rounded-xl border border-line bg-surface shadow-card">
+            <Inbox aria-hidden className="size-6 text-faint" strokeWidth={1.5} />
+            <p className="max-w-xs text-sm text-muted">
+              {selectedId ? "Carregando a conversa…" : "Pegue o próximo ticket ou escolha um dos seus."}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

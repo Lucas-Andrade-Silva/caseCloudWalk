@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchMap, type Me } from "../../lib/api";
+import { TriangleAlert } from "lucide-react";
+import { fetchIncidents, fetchMap, type Me } from "../../lib/api";
+import { BRAND_LABELS } from "../../lib/format";
+import { usePolling } from "../../lib/usePolling";
 import { navigate } from "../../lib/useHashRoute";
 import { createBatcher } from "./batcher";
 import { cableUrl, connectMap, type CableStatus, type SocketFactory } from "./cable";
@@ -12,6 +15,8 @@ const POLL_MS = 5_000;
 const CLOCK_MS = 5_000;
 const NODE_LIMIT = 500;
 const ALL_BRANDS = ["infinitepay", "jim"];
+// Laranja da CloudWalk (token --color-incident): reservado ao Modo Incidente, fora da paleta dos grupos.
+const INCIDENT_COLOR = "#e25813";
 
 const STATUS_TEXT: Record<CableStatus, string> = {
   connecting: "Conectando…",
@@ -27,6 +32,11 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
   const [now, setNow] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const brands = useMemo(() => (me.role === "ops" ? ALL_BRANDS : me.brands), [me]);
+  // Modo Incidente (ADR 0009): os incidentes abertos chegam por polling; os tickets dizem a qual pertencem.
+  const loadIncidents = useCallback(() => fetchIncidents(token), [token]);
+  const incidentData = usePolling(loadIncidents, POLL_MS).data;
+  const incidents = useMemo(() => incidentData?.incidents ?? [], [incidentData]);
+  const incidentIds = useMemo(() => new Set(incidents.map((incident) => incident.id)), [incidents]);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -75,7 +85,17 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     return () => clearInterval(timer);
   }, []);
 
-  const tickets = useMemo(() => [...state.values()], [state]);
+  // Os tickets de um incidente aberto saem do grupo de origem e formam o grupo do incidente: no mapa, eles se
+  // desprendem e se juntam, e o pico fica visível na hora.
+  const incidentLabels = useMemo(() => new Map(incidents.map((incident) => [incident.id, incident.label])), [incidents]);
+  const tickets = useMemo(
+    () =>
+      [...state.values()].map((ticket) => {
+        const label = ticket.incident_id ? incidentLabels.get(ticket.incident_id) : undefined;
+        return label ? { ...ticket, cluster: { key: `incidente:${ticket.incident_id}`, label: `incidente · ${label}` } } : ticket;
+      }),
+    [state, incidentLabels],
+  );
   const clusters = useMemo(() => summarize(tickets, now), [tickets, now]);
 
   // Cores estáveis: só recalcula quando o conjunto de grupos muda (estado derivado de renderizações anteriores).
@@ -86,25 +106,44 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     setColorKeys(clusterKeys);
     setColors(assignColors(clusters.map((cluster) => cluster.key), colors));
   }
-  const colorFor = (key: string) => colors.get(key) ?? PALETTE[0]!;
+  const colorFor = (key: string) => (key.startsWith("incidente:") ? INCIDENT_COLOR : (colors.get(key) ?? PALETTE[0]!));
   const { visible, hidden } = useMemo(() => capNodes(tickets, NODE_LIMIT), [tickets]);
   const total = snapshotTotal !== null && snapshotTotal > NODE_LIMIT ? Math.max(snapshotTotal, tickets.length) : tickets.length;
   const atRiskTotal = clusters.reduce((sum, cluster) => sum + cluster.atRisk, 0);
 
   return (
-    <div className="flex h-screen min-w-0 flex-1">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-          <h1 className="text-sm font-semibold">Mapa vivo</h1>
-          <p className="text-xs text-muted">{total} tickets abertos</p>
+    <div className="flex h-screen min-w-0 flex-1 gap-4 p-4">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+        <header className="flex min-h-14 items-center gap-4 border-b border-line px-5 py-2.5">
+          <h1 className="text-[15px] font-semibold tracking-tight">Mapa vivo</h1>
+          <p className="text-sm text-muted tabular">{total} tickets abertos</p>
           {hidden > 0 && <p className="text-xs text-faint">+{hidden} fora do desenho</p>}
-          <p className={`ml-auto flex items-center gap-1.5 text-xs ${status === "live" ? "text-success" : "text-warning"}`}>
-            <span aria-hidden className={`size-1.5 rounded-full ${status === "live" ? "bg-success" : "bg-warning"}`} />
+          <p className={`ml-auto flex items-center gap-2 text-xs font-medium ${status === "live" ? "text-success" : "text-warning"}`}>
+            <span aria-hidden className="relative flex size-2">
+              {status === "live" && <span className="absolute inset-0 rounded-full bg-success opacity-60 motion-safe:animate-ping" />}
+              <span className={`relative size-2 rounded-full ${status === "live" ? "bg-success" : "bg-warning"}`} />
+            </span>
             {STATUS_TEXT[status]}
           </p>
         </header>
+        {incidents.length > 0 && (
+          <section aria-label="Incidentes abertos" className="border-b border-incident/30 bg-incident/6 px-5 py-2.5">
+            <ul className="space-y-1">
+              {incidents.map((incident) => (
+                <li key={incident.id} className="flex animate-rise items-center gap-3 text-sm">
+                  <TriangleAlert aria-hidden className="size-4 shrink-0 text-incident-text" strokeWidth={2} />
+                  <span className="text-xs font-medium text-incident-text">
+                    Incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
+                  </span>
+                  <span className="min-w-0 truncate font-semibold text-text">{incident.title}</span>
+                  <span className="ml-auto shrink-0 text-xs text-muted tabular">{incident.open_tickets} tickets</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {error && (
-          <p role="alert" className="px-4 py-2 text-xs text-danger">
+          <p role="alert" className="px-5 py-2 text-xs text-danger">
             {error}
           </p>
         )}
@@ -113,35 +152,39 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
             tickets={visible}
             clusters={clusters}
             colorFor={colorFor}
+            incidentIds={incidentIds}
             onOpen={me.role === "analyst" ? (id) => navigate(`/fila/${id}`) : undefined}
           />
         </div>
       </div>
 
-      <aside className="w-64 shrink-0 overflow-y-auto border-l border-line p-4">
-        <h2 className="text-xs font-medium text-muted">Grupos</h2>
+      <aside className="w-72 shrink-0 overflow-y-auto p-5 rounded-xl border border-line bg-surface shadow-card">
+        <h2 className="text-xs font-semibold text-text">Grupos</h2>
         {clusters.length === 0 ? (
           <p className="mt-2 text-xs text-faint">Nenhum ticket aberto.</p>
         ) : (
-          <ul aria-label="Grupos do mapa" className="mt-2 space-y-1.5">
+          <ul aria-label="Grupos do mapa" className="mt-3 space-y-0.5">
             {clusters.map((cluster) => (
-              <li key={cluster.key} className="flex items-center gap-2 text-xs">
+              <li key={cluster.key} className="flex h-7 items-center gap-2.5 rounded-md px-1.5 text-xs hover:bg-elevated">
                 <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: colorFor(cluster.key) }} />
                 <span className="min-w-0 flex-1 truncate text-text">{cluster.label}</span>
-                {cluster.atRisk > 0 && <span className="text-danger">{cluster.atRisk} em risco</span>}
-                <span className="font-mono text-muted">{cluster.count}</span>
+                {cluster.atRisk > 0 && <span className="text-[11px] font-medium text-danger">{cluster.atRisk} em risco</span>}
+                <span className="w-6 text-right font-medium text-muted tabular">{cluster.count}</span>
               </li>
             ))}
           </ul>
         )}
-        {atRiskTotal > 0 && <p className="mt-3 text-xs text-danger">{atRiskTotal} tickets em risco de prazo</p>}
+        {atRiskTotal > 0 && <p className="mt-3 px-1.5 text-xs text-danger">{atRiskTotal} tickets em risco de prazo</p>}
 
-        <h2 className="mt-6 text-xs font-medium text-muted">Como ler</h2>
-        <ul className="mt-2 space-y-1 text-[11px] text-faint">
+        <h2 className="mt-8 text-xs font-semibold text-text">Como ler</h2>
+        <ul className="mt-3 space-y-1.5 text-[11px] leading-relaxed text-faint">
           <li>Cor: o grupo (primeira tag; sem tag, a fila)</li>
           <li>Tamanho: a prioridade (P1 maior)</li>
           <li>
             Anel: <span className="text-warning">esperando humano</span> ou <span className="text-success">com humano</span>; sem anel, com a IA
+          </li>
+          <li>
+            Anel <span className="text-incident-text">laranja tracejado</span>: ticket de um incidente aberto
           </li>
           <li>
             Pulso <span className="text-danger">vermelho</span>: prazo humano perto de vencer, ou agente calado há 20 s

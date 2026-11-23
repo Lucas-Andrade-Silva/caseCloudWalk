@@ -1,0 +1,64 @@
+{
+  "stages": [
+    {
+      "stage": "1x",
+      "sent": 396,
+      "redeliveries": 95,
+      "rate_per_s": 5.0,
+      "refused": 0,
+      "ack_p50_ms": 42.245798,
+      "ack_p99_ms": 72.864797,
+      "answered": 300,
+      "escalated": 1,
+      "e2e_p50_ms": 259,
+      "e2e_p99_ms": 426,
+      "outbox_p99_ms": 377
+    },
+    {
+      "stage": "10x",
+      "sent": 11594,
+      "redeliveries": 2698,
+      "rate_per_s": 49.5,
+      "refused": 0,
+      "ack_p50_ms": 58.308365,
+      "ack_p99_ms": 217.751143,
+      "answered": 6761,
+      "escalated": 2135,
+      "e2e_p50_ms": 636,
+      "e2e_p99_ms": 1249,
+      "outbox_p99_ms": 11182
+    },
+    {
+      "stage": "50x",
+      "sent": 28989,
+      "redeliveries": 6290,
+      "rate_per_s": 189.2,
+      "refused": 0,
+      "ack_p50_ms": 7680.310626,
+      "ack_p99_ms": 8605.103767,
+      "answered": 3690,
+      "escalated": 19009,
+      "e2e_p50_ms": 91898,
+      "e2e_p99_ms": 119119,
+      "outbox_p99_ms": 13813
+    },
+    {
+      "stage": "1x-volta",
+      "sent": 3480,
+      "redeliveries": 1117,
+      "rate_per_s": 39.7,
+      "refused": 0,
+      "ack_p50_ms": 7724.698397,
+      "ack_p99_ms": 8474.505514,
+      "answered": 423,
+      "escalated": 1940,
+      "e2e_p50_ms": 31324,
+      "e2e_p99_ms": 59737,
+      "outbox_p99_ms": 5717
+    }
+  ],
+  "totals": {
+    "sent": 44459,
+    "unique_messages": 34259
+  }
+}

@@ -1,0 +1,4 @@
+﻿fase        envios   msg/s  reent  recus    ACK p50    ACK p99   respond    escal    e2e p50    e2e p99 outbox p99
+1x             396     5.0     95      0      42 ms      81 ms       294        7     273 ms     418 ms   73050 ms
+10x-kafka    15467    49.6   3571      0      24 ms     141 ms      1134    10762     657 ms   24241 ms   72893 ms
+1x-volta       508     6.8    106      0      23 ms      49 ms         0      402          —          —          —

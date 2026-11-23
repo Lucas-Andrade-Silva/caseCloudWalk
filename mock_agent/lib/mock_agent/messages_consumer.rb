@@ -12,12 +12,15 @@ module MockAgent
         reply = responder.reply_for(parse(message.raw_payload), event_id: event_id)
         plan = Chaos.plan(event_id.to_s, Config.chaos)
 
-        if reply.nil?
-          MockAgent.logger.info("mensagem ignorada (offset #{message.offset})")
-        elsif plan.silence
-          MockAgent.logger.info("caos: silêncio para #{reply['ticket_id']}")
-        else
-          deliver(reply, plan)
+        # A resposta continua o trace da mensagem (ADR 0008, O2).
+        Tracing.within_message(message.headers.to_h) do |trace_headers|
+          if reply.nil?
+            MockAgent.logger.info("mensagem ignorada (offset #{message.offset})")
+          elsif plan.silence
+            MockAgent.logger.info("caos: silêncio para #{reply['ticket_id']}")
+          else
+            deliver(reply, plan, trace_headers)
+          end
         end
 
         next mark_as_consumed(message) unless plan.crash && reply
@@ -31,8 +34,9 @@ module MockAgent
 
     private
 
-    def deliver(reply, plan)
-      message = { topic: Config.replies_topic, key: reply["ticket_id"], payload: Chaos.payload_for(reply, plan) }
+    def deliver(reply, plan, trace_headers)
+      message = { topic: Config.replies_topic, key: reply["ticket_id"], payload: Chaos.payload_for(reply, plan),
+                  headers: trace_headers }
       copies = plan.duplicate ? 2 : 1
 
       if plan.delay_ms.positive?

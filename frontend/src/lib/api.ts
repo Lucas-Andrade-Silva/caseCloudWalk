@@ -63,7 +63,16 @@ export interface TicketDetail extends Omit<WorkItem, "last_message"> {
   assignee_id: string | null;
   closed_at: string | null;
   resolution_code: string | null;
-  handoff_brief: { summary: string; reason: string; trigger: string } | null;
+  handoff_brief: {
+    summary: string;
+    reason: string;
+    trigger: string;
+    /** Resumo do LLM (ADR 0008); o `summary` por template fica de reserva. */
+    llm_summary?: string;
+    llm_model?: string;
+  } | null;
+  /** Fatos que o LLM deu ao ticket (categoria, idioma, frustração, confiança); vazio sem enriquecimento. */
+  llm_facts?: { category?: string | null; language?: string; frustration?: string; confidence?: number; source?: string };
   messages: Message[];
   memory: { window_days: number; tickets: MemoryItem[] };
 }
@@ -137,3 +146,96 @@ export const closeTicket = (token: string, id: string, resolutionCode: Resolutio
     method: "POST",
     body: { resolution_code: resolutionCode, resolution_note: resolutionNote },
   });
+
+/** Pico de tickets parecidos da mesma marca, agrupados (ADR 0009, Modo Incidente). */
+export interface Incident {
+  id: string;
+  key: string;
+  label: string;
+  brand: string;
+  status: "open" | "resolved";
+  title: string;
+  draft_reply: string;
+  /** "template" quando a LLM não escreveu; senão, a origem da resposta dela (stub, replay ou live). */
+  title_source: string;
+  model: string | null;
+  opened_at: string;
+  resolved_at: string | null;
+  open_tickets: number;
+  total_tickets: number;
+}
+
+export interface IncidentResolution {
+  closed: number;
+  skipped: { id: string; reason: string }[];
+  incident: Incident;
+}
+
+export const fetchIncidents = (token: string) => request<{ incidents: Incident[] }>(token, "/api/incidents");
+
+/** Responder a todos: assume, responde e fecha os tickets do incidente que não estão com outro analista. */
+export const resolveIncident = (token: string, id: string, text: string, resolutionCode: ResolutionCode) =>
+  request<IncidentResolution>(token, `/api/incidents/${id}/resolve`, {
+    method: "POST",
+    body: { text, resolution_code: resolutionCode },
+  });
+
+/** Um passo da cadeia de decisão de um ticket ("Por que a IA decidiu", ADR 0009). */
+export type ExplanationStep = { at: string; actor: string } & (
+  | { kind: "opened"; channel: string }
+  | {
+      kind: "rule";
+      step: string;
+      rule_set_version: number | null;
+      rule: { id: string; name: string; when: unknown } | null;
+      output: { queue: string | null; priority: string | null; tags: string[] };
+      facts: Record<string, unknown>;
+    }
+  | {
+      kind: "llm_facts";
+      category: string | null;
+      language: string;
+      frustration: string;
+      confidence: number;
+      accepted: boolean;
+      min_confidence: number;
+      source: string;
+      model: string;
+      prompt_version: string;
+    }
+  | { kind: "llm_fallback" | "brief_fallback"; reason: string }
+  | { kind: "escalated"; trigger: string; reason: string; priority: string }
+  | { kind: "brief"; source: string; model: string; prompt_version: string }
+  | { kind: "incident"; incident_id: string; key: string }
+);
+
+export interface Explanation {
+  ticket_id: string;
+  /** Primeira mensagem do cliente como a LLM a recebe: dados pessoais trocados por marcadores. */
+  redacted_text: string;
+  redactions: Record<string, number>;
+  trace_id: string | null;
+  steps: ExplanationStep[];
+}
+
+export const fetchExplanation = (token: string, id: string) => request<Explanation>(token, `/api/tickets/${id}/explanation`);
+
+/** Números do Painel, todos lidos do banco (ADR 0009, W8). Janela de 7 dias contando hoje. */
+export interface DashboardMetrics {
+  generated_at: string;
+  time_zone: string;
+  open: { total: number; ai: number; pending_human: number; human: number; incidents: number };
+  today: { created: number; closed: number };
+  yesterday: { created: number; closed: number };
+  daily: { date: string; created: number; closed: number }[];
+  first_reply: {
+    median_seconds: number | null;
+    answered: number;
+    buckets: { key: "up_to_5m" | "5m_to_15m" | "15m_to_1h" | "over_1h" | "waiting"; count: number }[];
+  };
+  sla: { met: number; missed: number };
+  resolution: { ai: number; human: number };
+  channels: { channel: string; count: number }[];
+}
+
+export const fetchDashboard = (token: string) => request<DashboardMetrics>(token, "/api/dashboard");

@@ -30,6 +30,9 @@ module MockAgent
   end
 end
 
+require "mock_agent/tracing"
+MockAgent::Tracing.configure!
+
 require "mock_agent/chaos"
 require "mock_agent/delayed_publisher"
 require "mock_agent/responder"

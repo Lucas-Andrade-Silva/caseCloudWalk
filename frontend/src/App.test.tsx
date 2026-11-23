@@ -36,7 +36,7 @@ describe("entrada na plataforma", () => {
       headers: { Accept: "application/json", Authorization: "Bearer token-da-ana" },
     });
     const nav = screen.getByRole("navigation", { name: "Principal" });
-    expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Fila", "Mapa vivo"]);
+    expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Painel", "Fila", "Mapa vivo"]);
     expect(window.localStorage.getItem("helpdesk.token")).toBe("token-da-ana");
     expect(await screen.findByRole("button", { name: "Pegar o próximo" })).toBeInTheDocument();
     expect(window.location.hash).toBe("#/fila");
@@ -50,7 +50,7 @@ describe("entrada na plataforma", () => {
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     const nav = await screen.findByRole("navigation", { name: "Principal" });
-    expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Filas e regras", "Mapa vivo"]);
+    expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Painel", "Filas e regras", "Mapa vivo"]);
     expect(await screen.findByRole("form", { name: "Nova fila" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Regras" })).toHaveAttribute("href", "#/operacao/regras");
     expect(window.location.hash).toBe("#/operacao");

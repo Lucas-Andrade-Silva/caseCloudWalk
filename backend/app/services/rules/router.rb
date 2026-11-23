@@ -23,6 +23,15 @@ module Rules
       outcome
     end
 
+    # Depois do enriquecimento (ADR 0008, L1): reavalia com os fatos do LLM enquanto o ticket está com a IA.
+    def route_enrichment!(ticket)
+      facts = Facts.for_opening(ticket)
+      outcome = evaluate(brand: ticket.brand, facts: facts)
+      ticket.update!(priority: outcome.priority || ticket.priority, tags: outcome.tags, queue: outcome.queue)
+      record!(ticket: ticket, step: "routing.enrichment", facts: facts, outcome: outcome)
+      outcome
+    end
+
     def record!(ticket:, step:, facts:, outcome:)
       Decision.create!(
         ticket: ticket,

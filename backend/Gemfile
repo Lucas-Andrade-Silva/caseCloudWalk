@@ -19,3 +19,16 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
 end
+
+# Observabilidade (ADR 0002, D13; ADR 0008): traces OpenTelemetry e métricas Prometheus.
+gem "opentelemetry-sdk", "1.13.1"
+gem "opentelemetry-exporter-otlp", "0.37.0"
+gem "opentelemetry-instrumentation-rails", "0.42.0"
+gem "opentelemetry-instrumentation-pg", "0.37.1"
+gem "opentelemetry-instrumentation-net_http", "0.30.0"
+gem "opentelemetry-instrumentation-sidekiq", "0.29.0"
+gem "prometheus-client", "5.0.0"
+# Dependências indiretas fixadas: as versões mais novas tinham menos de 14 dias na data da escolha.
+gem "opentelemetry-instrumentation-action_pack", "0.18.1"
+gem "opentelemetry-instrumentation-rack", "0.31.2"
+gem "opentelemetry-semantic_conventions", "1.44.0"

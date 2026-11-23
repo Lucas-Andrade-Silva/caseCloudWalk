@@ -24,6 +24,7 @@ module Tickets
         version: Memory::ClosingSummaryTemplate::VERSION, source: Memory::ClosingSummaryTemplate::SOURCE,
         text: Memory::ClosingSummaryTemplate.build(@ticket), expires_at: @now + Memory.window_days.days
       )
+      Llm::Summaries.enqueue_after_commit(ClosingSummaryJob, @ticket.id)
       @ticket
     end
 

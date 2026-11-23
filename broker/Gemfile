@@ -9,3 +9,10 @@ gem "rack", "~> 3.1"
 group :development, :test do
   gem "rspec", "~> 3.13"
 end
+
+# Observabilidade (ADR 0008): traces OpenTelemetry pelo webhook e pelo Kafka, métricas Prometheus.
+gem "opentelemetry-sdk", "1.13.1"
+gem "opentelemetry-exporter-otlp", "0.37.0"
+# Indireta fixada: a mais nova tinha menos de 14 dias na data da escolha.
+gem "opentelemetry-semantic_conventions", "1.44.0"
+gem "prometheus-client", "5.0.0"

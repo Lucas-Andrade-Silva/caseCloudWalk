@@ -19,7 +19,8 @@ module Live
         escalated_at: ticket.escalated_at&.iso8601(3),
         first_response_due_at: ticket.first_response_due_at&.iso8601(3),
         first_human_response_at: ticket.first_human_response_at&.iso8601(3),
-        awaiting_agent_since: ticket.awaiting_agent_since&.iso8601(3)
+        awaiting_agent_since: ticket.awaiting_agent_since&.iso8601(3),
+        incident_id: ticket.incident_id
       }
     end
 
