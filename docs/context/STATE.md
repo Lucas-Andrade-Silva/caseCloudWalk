@@ -7,7 +7,7 @@ Atualizado em: 2026-11-22
 Reta final (entrega **2026-11-27**). Na `main`: fatias 01 a 06, piloto de carga, todas as telas e o mapa vivo.
 Commitadas e ainda fora da `main`: `feat/observability` e `feat/llm` (LLM verificada ao vivo no Groq em
 2026-11-21, prompts v2). Em andamento: `feat/incident-mode-and-redesign` (ADR 0009): **redesign no visual da CloudWalk**
-commitado; **Modo Incidente** pronto e verificado na pilha com o Groq ao vivo (ainda sem commit). O experimento é exigido pelo TAPI; corte só com OK do dono.
+e **Modo Incidente** commitados; **"Por que a IA decidiu"** pronto e verificado na pilha (ainda sem commit). O experimento é exigido pelo TAPI; corte só com OK do dono.
 
 ## Onde está cada coisa
 
@@ -26,7 +26,7 @@ commitado; **Modo Incidente** pronto e verificado na pilha com o Groq ao vivo (a
   api` aplica migrações; recrie `relay`, `sidekiq` e consumidores, que são processos longos, e o `web` quando
   mudar o `vite.config.ts` ou o `package-lock.json`).
 - **Gates** (`docker compose run --rm` + `test`, `broker-test`, `mock-agent-test`, `web-test`). Últimos
-  resultados: plataforma 228 e rubocop limpo (2026-11-22), broker 25, mock 22 (2026-11-21); frontend 54
+  resultados: plataforma 232 e rubocop limpo (2026-11-22), broker 25, mock 22 (2026-11-21); frontend 57
   testes, tipos e lint limpos (2026-11-22; com o Docker fora, `npm run gate` em `frontend/` com o Node local).
 - **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`; Grafana em `:3030`,
@@ -53,15 +53,17 @@ Caminho de uma mensagem (ADR 0003):
   dry-run); mapa vivo (`GET /api/map` e `MapChannel`); resiliência (`Invariants::Checker`); observabilidade
   (trace W3C ponta a ponta, `/metrics`); LLM (enriquecimento, brief e resumo, com fallback; ADR 0008);
   **Modo Incidente** (ADR 0009, W7): `Incident`, `Incidents::Detect` (5 em 10 min por marca e chave),
-  título e rascunho pela LLM, `GET /api/incidents` e `POST /api/incidents/:id/resolve` (responder a todos).
+  título e rascunho pela LLM, `GET /api/incidents` e `POST /api/incidents/:id/resolve` (responder a todos);
+  **cadeia de decisão** (`GET /api/tickets/:id/explanation`, `Tickets::Explain`), montada da auditoria.
 - `broker/` (Ruby puro): webhook → Kafka e Kafka → API, com retry-1 (10 s), retry-2 (60 s) e DLQ.
 - `mock_agent/` (Ruby puro): responde ou escala (30%), determinístico; `[escalar]`/`[responder]`; modo caos.
 - `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada, painel do analista, chat do cliente,
   editor da operação e mapa vivo (d3-force em canvas). Visual CloudWalk: tokens em `src/index.css`,
   componentes únicos em `src/ui/`, fontes por `@fontsource`, ícones Lucide. Modo Incidente: banner e
-  "Responder a todos" no painel, grupo laranja no mapa e botão "Simular pico" no chat do cliente.
+  "Responder a todos" no painel, grupo laranja no mapa e botão "Simular pico" no chat do cliente. Aba
+  "Por que a IA decidiu" no painel do ticket (link do Jaeger só funciona com o perfil `obs` e exportador OTLP).
 - Seeds de dev: equipes, filas e regras v1; analistas Ana, Bruno, Carla (`dev-analyst-<nome>`), ops Olivia.
-- Ainda **não** existem: "Por que a IA decidiu", fechamento automático de tickets da IA,
+- Ainda **não** existem: fechamento automático de tickets da IA,
   roteiro de resiliência, k6, RLS e canais reais.
 
 ## Verdades vigentes
@@ -83,11 +85,11 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Próximos passos (ordem do ADR 0009)
 
-1. Commit do Modo Incidente (com OK do dono).
+1. Commit de "Por que a IA decidiu" (com OK do dono).
 2. Conferir a tela da operação com dados (o redesign só foi visto na fila, no mapa e no chat).
-3. "Por que a IA decidiu" por ticket. 4. Fechamento automático (30 min) e dados de demo limpos.
-5. Roteiro de resiliência ao vivo e vídeo de reserva. 6. Experimento enxuto (k6, produção) e README.
-7. Push e PRs: observabilidade → LLM → esta branch.
+3. Fechamento automático (30 min) e dados de demo limpos.
+4. Roteiro de resiliência ao vivo e vídeo de reserva. 5. Experimento enxuto (k6, produção) e README.
+6. Push e PRs: observabilidade → LLM → esta branch.
 
 ## Pendências do dono
 

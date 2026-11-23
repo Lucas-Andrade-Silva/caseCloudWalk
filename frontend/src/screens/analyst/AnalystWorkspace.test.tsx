@@ -110,6 +110,27 @@ describe("painel do analista", () => {
     expect(within(context).getByText("frustração: alta")).toBeInTheDocument();
   });
 
+  it("troca o painel lateral para a cadeia de decisão da IA", async () => {
+    window.location.hash = "#/fila/t1";
+    mockApi({
+      "GET /api/work": () => [200, { ...emptyWork, mine: [item({ mode: "human" })] }],
+      "GET /api/tickets/t1": () => [200, detail()],
+      "GET /api/tickets/t1/explanation": () => [
+        200,
+        { ticket_id: "t1", redacted_text: "oi", redactions: {}, trace_id: null, steps: [] },
+      ],
+    });
+    render(<AnalystWorkspace token="tk" />);
+
+    const tab = await screen.findByRole("tab", { name: "Por que a IA decidiu" });
+    expect(screen.getByRole("tab", { name: "Contexto" })).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(tab);
+
+    expect(tab).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByRole("figure", { name: "Texto que a LLM recebeu" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Contexto" })).not.toBeInTheDocument();
+  });
+
   it("avisa quando não há nada para pegar", async () => {
     mockApi({ "GET /api/work": () => [200, emptyWork], "POST /api/work/next": () => [204] });
     render(<AnalystWorkspace token="tk" />);

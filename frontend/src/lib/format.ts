@@ -43,3 +43,31 @@ export function timeOfDay(iso: string): string {
 export function shortDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
+
+// Nomes dos fatos e operadores das regras (ADR 0005, R3), no editor da operação e na cadeia de decisão.
+export const FACT_LABELS: Record<string, string> = {
+  brand: "Marca",
+  channel: "Canal",
+  stage: "Momento",
+  message_text: "Texto da mensagem",
+  customer_recurring: "Cliente recorrente",
+  contacts_24h: "Contatos em 24 h",
+  amount: "Valor citado",
+  escalation_reason: "Motivo da escalação",
+  escalation_trigger: "Gatilho da escalação",
+  ai_minutes: "Minutos com a IA",
+  category: "Categoria (IA)",
+  language: "Idioma (IA)",
+  frustration: "Frustração (IA)",
+};
+
+export const OPERATOR_LABELS: Record<string, string> = {
+  eq: "é igual a",
+  neq: "é diferente de",
+  in: "é um de",
+  contains_any: "contém alguma de",
+  gt: "maior que",
+  gte: "maior ou igual a",
+  lt: "menor que",
+  lte: "menor ou igual a",
+};

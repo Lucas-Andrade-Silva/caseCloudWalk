@@ -11,7 +11,7 @@ import {
 import { navigate, useHashRoute } from "../../lib/useHashRoute";
 import { usePolling } from "../../lib/usePolling";
 import { Button } from "../../ui/Button";
-import { ContextPanel } from "./ContextPanel";
+import { SidePanel } from "./SidePanel";
 import { Conversation } from "./Conversation";
 import { IncidentBanner } from "./IncidentBanner";
 import { TicketList } from "./TicketList";
@@ -109,9 +109,7 @@ export function AnalystWorkspace({ token }: { token: string }) {
         {current ? (
           <>
             <Conversation ticket={current} onSend={send} onClose={close} />
-            <aside className="w-80 shrink-0 overflow-y-auto border-l border-line bg-bg">
-              <ContextPanel ticket={current} />
-            </aside>
+            <SidePanel token={token} ticket={current} />
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">

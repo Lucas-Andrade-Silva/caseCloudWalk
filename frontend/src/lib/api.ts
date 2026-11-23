@@ -179,3 +179,43 @@ export const resolveIncident = (token: string, id: string, text: string, resolut
     method: "POST",
     body: { text, resolution_code: resolutionCode },
   });
+
+/** Um passo da cadeia de decisão de um ticket ("Por que a IA decidiu", ADR 0009). */
+export type ExplanationStep = { at: string; actor: string } & (
+  | { kind: "opened"; channel: string }
+  | {
+      kind: "rule";
+      step: string;
+      rule_set_version: number | null;
+      rule: { id: string; name: string; when: unknown } | null;
+      output: { queue: string | null; priority: string | null; tags: string[] };
+      facts: Record<string, unknown>;
+    }
+  | {
+      kind: "llm_facts";
+      category: string | null;
+      language: string;
+      frustration: string;
+      confidence: number;
+      accepted: boolean;
+      min_confidence: number;
+      source: string;
+      model: string;
+      prompt_version: string;
+    }
+  | { kind: "llm_fallback" | "brief_fallback"; reason: string }
+  | { kind: "escalated"; trigger: string; reason: string; priority: string }
+  | { kind: "brief"; source: string; model: string; prompt_version: string }
+  | { kind: "incident"; incident_id: string; key: string }
+);
+
+export interface Explanation {
+  ticket_id: string;
+  /** Primeira mensagem do cliente como a LLM a recebe: dados pessoais trocados por marcadores. */
+  redacted_text: string;
+  redactions: Record<string, number>;
+  trace_id: string | null;
+  steps: ExplanationStep[];
+}
+
+export const fetchExplanation = (token: string, id: string) => request<Explanation>(token, `/api/tickets/${id}/explanation`);

@@ -16,6 +16,11 @@ module Api
       )
     end
 
+    # "Por que a IA decidiu" (ADR 0009): a cadeia de decisão do ticket, da auditoria já gravada.
+    def explanation
+      render json: Tickets::Explain.call(@ticket)
+    end
+
     # Takeover: o analista tira da IA um ticket que ainda não foi escalado.
     def takeover
       @ticket.with_lock do

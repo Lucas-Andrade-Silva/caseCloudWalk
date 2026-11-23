@@ -1,33 +1,9 @@
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { FACT_LABELS, OPERATOR_LABELS } from "../../lib/format";
 import type { Queue } from "../../lib/opsApi";
 import { defaultCondition, type Catalog, type Condition, type EditableRule, type SimpleRule } from "./rules/builder";
 
-const FACT_LABELS: Record<string, string> = {
-  brand: "Marca",
-  channel: "Canal",
-  stage: "Momento",
-  message_text: "Texto da mensagem",
-  customer_recurring: "Cliente recorrente",
-  contacts_24h: "Contatos em 24 h",
-  amount: "Valor citado",
-  escalation_reason: "Motivo da escalação",
-  escalation_trigger: "Gatilho da escalação",
-  ai_minutes: "Minutos com a IA",
-  category: "Categoria (IA)",
-  language: "Idioma (IA)",
-  frustration: "Frustração (IA)",
-};
 
-const OPERATOR_LABELS: Record<string, string> = {
-  eq: "é igual a",
-  neq: "é diferente de",
-  in: "é um de",
-  contains_any: "contém alguma de",
-  gt: "maior que",
-  gte: "maior ou igual a",
-  lt: "menor que",
-  lte: "menor ou igual a",
-};
 
 const PRIORITIES = ["p1", "p2", "p3", "p4"];
 

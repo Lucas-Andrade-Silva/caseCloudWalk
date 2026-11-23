@@ -33,6 +33,7 @@ Rails.application.routes.draw do
     post "work/next", to: "work#next"
     resources :tickets, only: :show do
       member do
+        get :explanation
         post :takeover
         post :messages
         post :close
