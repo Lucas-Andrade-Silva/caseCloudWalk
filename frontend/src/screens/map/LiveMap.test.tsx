@@ -104,6 +104,31 @@ describe("mapa vivo", () => {
     expect(await screen.findByText("1 em risco")).toBeInTheDocument();
   });
 
+  it("destaca o incidente aberto: aviso no topo e os tickets dele contados", async () => {
+    mockApi({
+      "GET /api/map": () => [
+        200,
+        {
+          total: 3,
+          limit: 500,
+          tickets: [ticket("a", "maquininha", { incident_id: "i1" }), ticket("b", "maquininha", { incident_id: "i1" }), ticket("c", "credito")],
+        },
+      ],
+      "GET /api/incidents": () => [
+        200,
+        { incidents: [{ id: "i1", label: "maquininha", brand: "infinitepay", title: "Maquininhas não ligam", open_tickets: 2 }] },
+      ],
+    });
+    render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+
+    const alert = await screen.findByRole("region", { name: "Incidentes abertos" });
+    expect(within(alert).getByText("Maquininhas não ligam")).toBeInTheDocument();
+    expect(within(alert).getByText("2 tickets")).toBeInTheDocument();
+    // Os tickets do incidente saem do grupo de origem e formam um grupo próprio no mapa.
+    expect(await screen.findByText("incidente · maquininha")).toBeInTheDocument();
+    expect(groupCounts()).toEqual(["incidente · maquininha2", "credito1"]);
+  });
+
   it("sem conexão, avisa e segue atualizando pelo retrato", async () => {
     mockApi({ "GET /api/map": () => [200, { total: 0, limit: 500, tickets: [] }] });
     render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);

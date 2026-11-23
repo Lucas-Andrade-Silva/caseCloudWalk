@@ -146,3 +146,36 @@ export const closeTicket = (token: string, id: string, resolutionCode: Resolutio
     method: "POST",
     body: { resolution_code: resolutionCode, resolution_note: resolutionNote },
   });
+
+/** Pico de tickets parecidos da mesma marca, agrupados (ADR 0009, Modo Incidente). */
+export interface Incident {
+  id: string;
+  key: string;
+  label: string;
+  brand: string;
+  status: "open" | "resolved";
+  title: string;
+  draft_reply: string;
+  /** "template" quando a LLM não escreveu; senão, a origem da resposta dela (stub, replay ou live). */
+  title_source: string;
+  model: string | null;
+  opened_at: string;
+  resolved_at: string | null;
+  open_tickets: number;
+  total_tickets: number;
+}
+
+export interface IncidentResolution {
+  closed: number;
+  skipped: { id: string; reason: string }[];
+  incident: Incident;
+}
+
+export const fetchIncidents = (token: string) => request<{ incidents: Incident[] }>(token, "/api/incidents");
+
+/** Responder a todos: assume, responde e fecha os tickets do incidente que não estão com outro analista. */
+export const resolveIncident = (token: string, id: string, text: string, resolutionCode: ResolutionCode) =>
+  request<IncidentResolution>(token, `/api/incidents/${id}/resolve`, {
+    method: "POST",
+    body: { text, resolution_code: resolutionCode },
+  });

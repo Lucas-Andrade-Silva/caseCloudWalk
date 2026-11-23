@@ -21,6 +21,8 @@
   --color-warning: #f0883e;
   --color-success: #24d332;
   --color-info: #6f95ff;
+  /* Laranja da CloudWalk: só para o Modo Incidente (bordas e fundos; texto usa warning, que passa no AA). */
+  --color-incident: #e25813;
   --color-brand-infinitepay: #06dd55;
   --color-brand-jim: #7aa2ff;
 

@@ -30,7 +30,7 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 // Mesmos valores dos tokens de index.css (o canvas não lê variáveis CSS a cada quadro).
-const COLORS = { label: "#a8a6a1", count: "#8f8d88", pending: "#f0883e", human: "#24d332", risk: "#ff6b5a" };
+const COLORS = { label: "#a8a6a1", count: "#8f8d88", pending: "#f0883e", human: "#24d332", risk: "#ff6b5a", incident: "#e25813" };
 const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
 // Desenha o grafo do mapa vivo em canvas, com a física do d3-force (ADR 0007, I3). Os grupos ficam em volta de
@@ -39,17 +39,23 @@ export function MapCanvas({
   tickets,
   clusters,
   colorFor,
+  incidentIds,
   onOpen,
 }: {
   tickets: MapTicket[];
   clusters: ClusterSummary[];
   colorFor: (clusterKey: string) => string;
+  incidentIds?: ReadonlySet<string>;
   onOpen?: (id: string) => void;
 }) {
   const colorRef = useRef(colorFor);
   useEffect(() => {
     colorRef.current = colorFor;
   }, [colorFor]);
+  const incidentRef = useRef<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    incidentRef.current = incidentIds ?? new Set();
+  }, [incidentIds]);
   const wrapper = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const nodes = useRef<Map<string, Node>>(new Map());
@@ -218,6 +224,18 @@ export function MapCanvas({
           context.lineWidth = 1.25;
           context.stroke();
           context.globalAlpha = 1;
+        }
+
+        // Modo Incidente: anel laranja tracejado, girando devagar, em volta dos tickets do pico.
+        if (ticket.incident_id && incidentRef.current.has(ticket.incident_id)) {
+          context.beginPath();
+          context.arc(x, y, nodeRadius(ticket.priority) + 4.5, 0, Math.PI * 2);
+          context.setLineDash([3, 3]);
+          context.lineDashOffset = reduceMotion ? 0 : -time / 120;
+          context.strokeStyle = COLORS.incident;
+          context.lineWidth = 1.5;
+          context.stroke();
+          context.setLineDash([]);
         }
 
         if (atRisk(ticket, now)) {

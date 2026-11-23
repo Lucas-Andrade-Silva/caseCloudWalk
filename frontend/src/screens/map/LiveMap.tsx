@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchMap, type Me } from "../../lib/api";
+import { TriangleAlert } from "lucide-react";
+import { fetchIncidents, fetchMap, type Me } from "../../lib/api";
+import { BRAND_LABELS } from "../../lib/format";
+import { usePolling } from "../../lib/usePolling";
 import { navigate } from "../../lib/useHashRoute";
 import { createBatcher } from "./batcher";
 import { cableUrl, connectMap, type CableStatus, type SocketFactory } from "./cable";
@@ -12,6 +15,8 @@ const POLL_MS = 5_000;
 const CLOCK_MS = 5_000;
 const NODE_LIMIT = 500;
 const ALL_BRANDS = ["infinitepay", "jim"];
+// Laranja da CloudWalk (token --color-incident): reservado ao Modo Incidente, fora da paleta dos grupos.
+const INCIDENT_COLOR = "#e25813";
 
 const STATUS_TEXT: Record<CableStatus, string> = {
   connecting: "Conectando…",
@@ -27,6 +32,11 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
   const [now, setNow] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const brands = useMemo(() => (me.role === "ops" ? ALL_BRANDS : me.brands), [me]);
+  // Modo Incidente (ADR 0009): os incidentes abertos chegam por polling; os tickets dizem a qual pertencem.
+  const loadIncidents = useCallback(() => fetchIncidents(token), [token]);
+  const incidentData = usePolling(loadIncidents, POLL_MS).data;
+  const incidents = useMemo(() => incidentData?.incidents ?? [], [incidentData]);
+  const incidentIds = useMemo(() => new Set(incidents.map((incident) => incident.id)), [incidents]);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -75,7 +85,17 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     return () => clearInterval(timer);
   }, []);
 
-  const tickets = useMemo(() => [...state.values()], [state]);
+  // Os tickets de um incidente aberto saem do grupo de origem e formam o grupo do incidente: no mapa, eles se
+  // desprendem e se juntam, e o pico fica visível na hora.
+  const incidentLabels = useMemo(() => new Map(incidents.map((incident) => [incident.id, incident.label])), [incidents]);
+  const tickets = useMemo(
+    () =>
+      [...state.values()].map((ticket) => {
+        const label = ticket.incident_id ? incidentLabels.get(ticket.incident_id) : undefined;
+        return label ? { ...ticket, cluster: { key: `incidente:${ticket.incident_id}`, label: `incidente · ${label}` } } : ticket;
+      }),
+    [state, incidentLabels],
+  );
   const clusters = useMemo(() => summarize(tickets, now), [tickets, now]);
 
   // Cores estáveis: só recalcula quando o conjunto de grupos muda (estado derivado de renderizações anteriores).
@@ -86,7 +106,7 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     setColorKeys(clusterKeys);
     setColors(assignColors(clusters.map((cluster) => cluster.key), colors));
   }
-  const colorFor = (key: string) => colors.get(key) ?? PALETTE[0]!;
+  const colorFor = (key: string) => (key.startsWith("incidente:") ? INCIDENT_COLOR : (colors.get(key) ?? PALETTE[0]!));
   const { visible, hidden } = useMemo(() => capNodes(tickets, NODE_LIMIT), [tickets]);
   const total = snapshotTotal !== null && snapshotTotal > NODE_LIMIT ? Math.max(snapshotTotal, tickets.length) : tickets.length;
   const atRiskTotal = clusters.reduce((sum, cluster) => sum + cluster.atRisk, 0);
@@ -106,6 +126,22 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
             {STATUS_TEXT[status]}
           </p>
         </header>
+        {incidents.length > 0 && (
+          <section aria-label="Incidentes abertos" className="border-b border-incident/40 bg-incident/8 px-5 py-2.5">
+            <ul className="space-y-1">
+              {incidents.map((incident) => (
+                <li key={incident.id} className="flex animate-rise items-center gap-3 text-sm">
+                  <TriangleAlert aria-hidden className="size-4 shrink-0 text-warning" strokeWidth={2} />
+                  <span className="font-mono text-[11px] text-warning">
+                    incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
+                  </span>
+                  <span className="min-w-0 truncate font-semibold text-text">{incident.title}</span>
+                  <span className="ml-auto shrink-0 font-mono text-xs text-muted tabular">{incident.open_tickets} tickets</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {error && (
           <p role="alert" className="px-5 py-2 text-xs text-danger">
             {error}
@@ -116,6 +152,7 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
             tickets={visible}
             clusters={clusters}
             colorFor={colorFor}
+            incidentIds={incidentIds}
             onOpen={me.role === "analyst" ? (id) => navigate(`/fila/${id}`) : undefined}
           />
         </div>
@@ -145,6 +182,9 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
           <li>Tamanho: a prioridade (P1 maior)</li>
           <li>
             Anel: <span className="text-warning">esperando humano</span> ou <span className="text-success">com humano</span>; sem anel, com a IA
+          </li>
+          <li>
+            Anel <span className="text-warning">laranja tracejado</span>: ticket de um incidente aberto
           </li>
           <li>
             Pulso <span className="text-danger">vermelho</span>: prazo humano perto de vencer, ou agente calado há 20 s

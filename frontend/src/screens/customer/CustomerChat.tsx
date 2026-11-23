@@ -1,4 +1,4 @@
-import { RefreshCw, Send } from "lucide-react";
+import { RefreshCw, Send, Zap } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError } from "../../lib/api";
 import { BRAND_LABELS, CHANNEL_LABELS, timeOfDay } from "../../lib/format";
@@ -28,6 +28,13 @@ const STATUS: Record<NonNullable<CustomerConversation["mode"]>, string> = {
 };
 
 const SENDER: Record<string, string> = { bot: "Assistente", analyst: "Equipe" };
+
+// Pico para demonstrar o Modo Incidente (ADR 0009): clientes sintéticos com a mesma reclamação ao mesmo tempo.
+const BURST_SIZE = 6;
+const BURST_TEXT: Record<string, string> = {
+  infinitepay: "minha maquininha não liga",
+  jim: "my card reader won't turn on",
+};
 
 const STATUS_DOT: Record<NonNullable<CustomerConversation["mode"]>, string> = {
   ai: "bg-accent",
@@ -73,6 +80,26 @@ function Setup({ onStart }: { onStart: (identity: CustomerIdentity) => void }) {
   }
 
   const field = `${fieldClass} mt-1.5 h-10`;
+  const [bursting, setBursting] = useState(false);
+  const [burstNotice, setBurstNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  async function burst() {
+    setBursting(true);
+    setBurstNotice(null);
+    const text = BURST_TEXT[brand] ?? BURST_TEXT.infinitepay!;
+    const results = await Promise.allSettled(
+      Array.from({ length: BURST_SIZE }, (_, index) =>
+        sendCustomerMessage({ brand, channel, name: `Cliente sintético ${index + 1}`, external_id: newExternalId() }, text),
+      ),
+    );
+    const sent = results.filter((result) => result.status === "fulfilled").length;
+    setBurstNotice(
+      sent > 0
+        ? { tone: "ok", text: `${sent} clientes enviaram “${text}”. Veja o incidente no painel e no mapa.` }
+        : { tone: "error", text: "O pico não foi enviado. O simulador está ligado?" },
+    );
+    setBursting(false);
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4 text-text">
@@ -110,6 +137,24 @@ function Setup({ onStart }: { onStart: (identity: CustomerIdentity) => void }) {
         <Button type="submit" variant="primary" disabled={!name.trim()} className="h-10 w-full">
           Começar conversa
         </Button>
+
+        <div className="border-t border-line pt-5">
+          <Button onClick={() => void burst()} busy={bursting} className="h-10 w-full">
+            <Zap aria-hidden className="size-3.5 text-warning" strokeWidth={2} />
+            Simular pico
+          </Button>
+          <p className="mt-2 text-xs leading-relaxed text-faint">
+            {BURST_SIZE} clientes sintéticos da marca escolhida mandam a mesma reclamação de uma vez.
+          </p>
+          {burstNotice && (
+            <p
+              role={burstNotice.tone === "ok" ? "status" : "alert"}
+              className={`mt-2 text-xs ${burstNotice.tone === "ok" ? "text-success" : "text-danger"}`}
+            >
+              {burstNotice.text}
+            </p>
+          )}
+        </div>
       </form>
     </main>
   );

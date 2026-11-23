@@ -28,6 +28,8 @@ module Ingestion
       result = receive
       # Depois do commit: o job do LLM precisa achar o ticket gravado (ADR 0008, L1).
       EnrichTicketJob.perform_async(result.ticket.id) if @opened && Llm.mode != "off"
+      # Modo Incidente (ADR 0009, W2): todo ticket aberto pode completar um pico.
+      DetectIncidentJob.perform_async(result.ticket.id) if @opened
       result
     end
 

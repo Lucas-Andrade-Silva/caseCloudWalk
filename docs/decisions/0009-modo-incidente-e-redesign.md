@@ -38,6 +38,20 @@ seguem provisórias até o dono confirmar.
 **W6. Experimento enxuto:** k6 em modo de produção (rampa 1×→10×→50×, Kafka parado 60 s, agente em caos,
 LLM fora), invariantes, gráficos do Grafana e relatório com hipótese, método e limitações.
 
+**W7. Detalhes do Modo Incidente** (implementação de W1 e W2, 2026-11-22; adotados sem resposta explícita do
+dono e reversíveis):
+- Chave do grupo: categoria da LLM; sem categoria útil, a primeira tag. "outro" e "falar_com_humano" não
+  abrem incidente (muitos pedidos assim não indicam uma falha comum).
+- No máximo um incidente aberto por marca e chave (índice único parcial). Com um aberto, todo ticket novo da
+  mesma chave entra nele. A detecção roda num job depois da entrada e de cada enriquecimento.
+- Título e rascunho nascem de um template; a LLM (`prompts/incident/v1.yaml`) os reescreve quando está ligada.
+- "Responder a todos" assume e fecha, numa transação, os tickets que estão com a IA, na fila ou com o próprio
+  analista. Os de outro analista ficam de fora e voltam como pulados: a plataforma não tira atendimento de
+  ninguém. O incidente fica resolvido.
+- No mapa, os tickets de um incidente aberto formam um grupo próprio, em laranja.
+- Observado na pilha: a detecção na entrada usa a tag da regra antes de a categoria da LLM chegar, então a
+  chave pode ser a tag (ex.: "dispositivo") enquanto o título da LLM fala da categoria.
+
 ## Consequências
 
 - Nova entidade `Incident` e nova ação em lote (responder e fechar vários tickets).

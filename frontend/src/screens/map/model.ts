@@ -16,6 +16,8 @@ export interface MapTicket {
   first_response_due_at: string | null;
   first_human_response_at: string | null;
   awaiting_agent_since: string | null;
+  /** Incidente que agrupa o ticket (ADR 0009); ausente em retratos antigos. */
+  incident_id?: string | null;
 }
 
 export type MapEvent = { type: "ticket.upsert"; ticket: MapTicket } | { type: "ticket.removed"; id: string };

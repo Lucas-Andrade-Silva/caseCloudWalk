@@ -20,6 +20,8 @@ module Llm
         # A auditoria guarda os fatos, nunca o texto do cliente.
         ticket.record_event!(kind: "ticket.enriched", actor: "llm", data: facts.merge(meta.except("enriched_at")))
         Rules::Router.route_enrichment!(ticket) if ticket.ai?
+        # A categoria pode mudar o grupo do ticket no Modo Incidente (ADR 0009, W2).
+        ActiveRecord.after_all_transactions_commit { DetectIncidentJob.perform_async(ticket.id) }
       end
     end
   end

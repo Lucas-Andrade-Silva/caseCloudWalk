@@ -23,6 +23,7 @@ module Llm
       case task
       when "enrich" then enrich(text)
       when "brief", "closing" then { "summary" => "Resumo de teste: #{text.to_s.lines.first.to_s.strip[0, 120]}" }
+      when "incident" then { "title" => "Teste: #{text.to_s.lines.second.to_s.strip[0, 60]}", "draft_reply" => "Rascunho de teste." }
       end
     end
 

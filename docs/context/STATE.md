@@ -6,8 +6,8 @@ Atualizado em: 2026-11-22
 
 Reta final (entrega **2026-11-27**). Na `main`: fatias 01 a 06, piloto de carga, todas as telas e o mapa vivo.
 Commitadas e ainda fora da `main`: `feat/observability` e `feat/llm` (LLM verificada ao vivo no Groq em
-2026-11-21, prompts v2). Em andamento: `feat/incident-mode-and-redesign` (ADR 0009), com o **redesign no visual
-da CloudWalk** feito no frontend e ainda sem commit. O experimento é exigido pelo TAPI; corte só com OK do dono.
+2026-11-21, prompts v2). Em andamento: `feat/incident-mode-and-redesign` (ADR 0009): **redesign no visual da CloudWalk**
+commitado; **Modo Incidente** pronto e verificado na pilha com o Groq ao vivo (ainda sem commit). O experimento é exigido pelo TAPI; corte só com OK do dono.
 
 ## Onde está cada coisa
 
@@ -26,8 +26,8 @@ da CloudWalk** feito no frontend e ainda sem commit. O experimento é exigido pe
   api` aplica migrações; recrie `relay`, `sidekiq` e consumidores, que são processos longos, e o `web` quando
   mudar o `vite.config.ts` ou o `package-lock.json`).
 - **Gates** (`docker compose run --rm` + `test`, `broker-test`, `mock-agent-test`, `web-test`). Últimos
-  resultados: plataforma 212, broker 25, mock 22 (2026-11-21); frontend 49 testes, tipos e lint limpos
-  (2026-11-22, rodado com o Node local: `npm run gate` em `frontend/`).
+  resultados: plataforma 228 e rubocop limpo (2026-11-22), broker 25, mock 22 (2026-11-21); frontend 54
+  testes, tipos e lint limpos (2026-11-22; com o Docker fora, `npm run gate` em `frontend/` com o Node local).
 - **Interface:** `http://127.0.0.1:5173` (`localhost` cai em outro Node desta máquina, em `[::1]:5173`).
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`; Grafana em `:3030`,
   Jaeger em `:16686` (API de consulta em `/api/v3`), Prometheus em `:9090`.
@@ -51,14 +51,17 @@ Caminho de uma mensagem (ADR 0003):
   regras na abertura; respostas do agente idempotentes; handoff com `handoff_epoch`; analista (fila, próximo,
   responder, fechar com resolução); memória (ADR 0006); operação (equipes, filas, regras versionadas com
   dry-run); mapa vivo (`GET /api/map` e `MapChannel`); resiliência (`Invariants::Checker`); observabilidade
-  (trace W3C ponta a ponta, `/metrics`); LLM (enriquecimento, brief e resumo, com fallback; ADR 0008).
+  (trace W3C ponta a ponta, `/metrics`); LLM (enriquecimento, brief e resumo, com fallback; ADR 0008);
+  **Modo Incidente** (ADR 0009, W7): `Incident`, `Incidents::Detect` (5 em 10 min por marca e chave),
+  título e rascunho pela LLM, `GET /api/incidents` e `POST /api/incidents/:id/resolve` (responder a todos).
 - `broker/` (Ruby puro): webhook → Kafka e Kafka → API, com retry-1 (10 s), retry-2 (60 s) e DLQ.
 - `mock_agent/` (Ruby puro): responde ou escala (30%), determinístico; `[escalar]`/`[responder]`; modo caos.
 - `frontend/` (React 19, Vite 8, TypeScript 6, Tailwind 4): entrada, painel do analista, chat do cliente,
   editor da operação e mapa vivo (d3-force em canvas). Visual CloudWalk: tokens em `src/index.css`,
-  componentes únicos em `src/ui/`, fontes por `@fontsource`, ícones Lucide.
+  componentes únicos em `src/ui/`, fontes por `@fontsource`, ícones Lucide. Modo Incidente: banner e
+  "Responder a todos" no painel, grupo laranja no mapa e botão "Simular pico" no chat do cliente.
 - Seeds de dev: equipes, filas e regras v1; analistas Ana, Bruno, Carla (`dev-analyst-<nome>`), ops Olivia.
-- Ainda **não** existem: Modo Incidente, "Por que a IA decidiu", fechamento automático de tickets da IA,
+- Ainda **não** existem: "Por que a IA decidiu", fechamento automático de tickets da IA,
   roteiro de resiliência, k6, RLS e canais reais.
 
 ## Verdades vigentes
@@ -80,9 +83,8 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Próximos passos (ordem do ADR 0009)
 
-1. Conferir o redesign com a pilha no ar (fila, operação e mapa com dados) e commitar.
-2. Modo Incidente (TDD): entidade `Incident`, detecção 5 em 10 min, título e rascunho pela LLM, destaque no
-   mapa, banner do analista, responder e fechar todos, botão de rajada no simulador.
+1. Commit do Modo Incidente (com OK do dono).
+2. Conferir a tela da operação com dados (o redesign só foi visto na fila, no mapa e no chat).
 3. "Por que a IA decidiu" por ticket. 4. Fechamento automático (30 min) e dados de demo limpos.
 5. Roteiro de resiliência ao vivo e vídeo de reserva. 6. Experimento enxuto (k6, produção) e README.
 7. Push e PRs: observabilidade → LLM → esta branch.
@@ -97,7 +99,9 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Bloqueios e riscos
 
-- **Docker Desktop cai sozinho** nesta máquina; às vezes só volta iniciado pelo dono.
+- **Docker Desktop cai sozinho** nesta máquina e, depois da queda, não abre: arquivos `.sock` presos em
+  `%LOCALAPPDATA%Dockerun` e `docker-secrets-engine`. Contorno: encerrar os processos, renomear as duas
+  pastas e abrir de novo (nunca "Reset to factory defaults", que apaga os volumes).
 - Latência em desenvolvimento não vale como medida; o experimento roda em modo de produção.
 - 10×: ponta a ponta p99 de 1.026 ms com a API em 4 × 5 (no limite da meta); 50× não testado.
 - Com WEB_CONCURRENCY > 1, os contadores RED do `/metrics` são de um processo só; as medidas do domínio não.

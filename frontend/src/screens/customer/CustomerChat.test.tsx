@@ -97,4 +97,19 @@ describe("chat do cliente simulado", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("O simulador de canal está desligado nesta instalação.");
   });
+
+  it("simula um pico: vários clientes sintéticos mandam a mesma reclamação de uma vez", async () => {
+    const api = mockApi({ "POST /api/simulator/messages": () => [201, { ticket_id: "t", seq: 1 }] });
+    render(<CustomerChat />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Simular pico" }));
+
+    const sent = api.calls.filter((call) => call.method === "POST");
+    expect(sent).toHaveLength(6);
+    const bodies = sent.map((call) => call.body as { brand: string; text: string; customer: { external_id: string } });
+    expect(new Set(bodies.map((body) => body.customer.external_id)).size).toBe(6);
+    expect(new Set(bodies.map((body) => body.text))).toEqual(new Set(["minha maquininha não liga"]));
+    expect(bodies.every((body) => body.brand === "infinitepay")).toBe(true);
+    expect(await screen.findByRole("status")).toHaveTextContent("6 clientes enviaram");
+  });
 });

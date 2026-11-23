@@ -23,6 +23,11 @@ Rails.application.routes.draw do
     post "simulator/messages", to: "simulator#create"
     get "simulator/conversation", to: "simulator#conversation"
 
+    # Modo Incidente (ADR 0009): incidentes abertos e "responder a todos".
+    resources :incidents, only: :index do
+      post :resolve, on: :member
+    end
+
     # Analista humano.
     get "work", to: "work#index"
     post "work/next", to: "work#next"
