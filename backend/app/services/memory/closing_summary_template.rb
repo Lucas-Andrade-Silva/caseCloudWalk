@@ -9,7 +9,8 @@ module Memory
       "resolved" => "resolvido",
       "no_customer_response" => "cliente não respondeu",
       "duplicate" => "duplicado",
-      "forwarded" => "encaminhado"
+      "forwarded" => "encaminhado",
+      "ai_resolved" => "resolvido pela IA"
     }.freeze
 
     module_function

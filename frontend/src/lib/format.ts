@@ -32,6 +32,12 @@ export const RESOLUTION_LABELS: Record<ResolutionCode, string> = {
   forwarded: "Encaminhado",
 };
 
+/** Resolução de um ticket na memória: os códigos do analista e o fechamento automático da IA (ADR 0009, W4). */
+export function resolutionLabel(code: string): string {
+  if (code === "ai_resolved") return "Resolvido pela IA";
+  return (RESOLUTION_LABELS as Record<string, string>)[code] ?? code;
+}
+
 export function customerName(customer: { external_id: string; name: string | null }): string {
   return customer.name ?? customer.external_id;
 }

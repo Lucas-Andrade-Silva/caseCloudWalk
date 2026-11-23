@@ -398,7 +398,7 @@ CREATE TABLE public.tickets (
     incident_id uuid,
     CONSTRAINT tickets_channel_valid CHECK ((channel = ANY (ARRAY['app_chat'::text, 'whatsapp'::text, 'email'::text]))),
     CONSTRAINT tickets_mode_valid CHECK ((mode = ANY (ARRAY['ai'::text, 'pending_human'::text, 'human'::text, 'closed'::text]))),
-    CONSTRAINT tickets_resolution_code_valid CHECK (((resolution_code IS NULL) OR (resolution_code = ANY (ARRAY['resolved'::text, 'no_customer_response'::text, 'duplicate'::text, 'forwarded'::text])))),
+    CONSTRAINT tickets_resolution_code_valid CHECK (((resolution_code IS NULL) OR (resolution_code = ANY (ARRAY['resolved'::text, 'no_customer_response'::text, 'duplicate'::text, 'forwarded'::text, 'ai_resolved'::text])))),
     CONSTRAINT tickets_resolution_note_length CHECK ((char_length(resolution_note) <= 2000))
 );
 
@@ -1077,6 +1077,7 @@ ALTER TABLE ONLY public.inbound_events
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261122000010'),
 ('20261122000009'),
 ('20261118000008'),
 ('20261116000007'),

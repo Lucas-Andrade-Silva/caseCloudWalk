@@ -4,3 +4,7 @@ agent_silence_watchdog:
   cron: "*/5 * * * * *"
   class: "AgentSilenceWatchdogJob"
   description: "Escala tickets em que o cliente espera o agente há mais do que o limite"
+ai_ticket_auto_close:
+  cron: "0 * * * * *"
+  class: "AutoCloseAiTicketsJob"
+  description: "Fecha os tickets da IA sem mensagem do cliente há AI_IDLE_CLOSE_MINUTES (30 por padrão)"

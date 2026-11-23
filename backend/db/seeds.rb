@@ -18,8 +18,10 @@ queue = lambda do |slug, name, brand, owner, default: false|
 end
 
 # Equipes e filas de exemplo (ADR 0005, R1). Cada marca tem a sua fila padrão (ADR 0004, H2).
-general_ip = team.("atendimento-infinitepay", "Atendimento InfinitePay")
-general_jim = team.("atendimento-jim", "Atendimento JIM")
+# A fila padrão já pode existir com a equipe criada pela migração 0005: reusa a dona dela, para não duplicar.
+owner_of = ->(slug) { TicketQueue.find_by(slug: slug)&.team }
+general_ip = owner_of.("infinitepay-atendimento") || team.("atendimento-infinitepay", "Atendimento InfinitePay")
+general_jim = owner_of.("jim-atendimento") || team.("atendimento-jim", "Atendimento JIM")
 credit = team.("credito", "Crédito")
 device = team.("dispositivo", "Dispositivo")
 
