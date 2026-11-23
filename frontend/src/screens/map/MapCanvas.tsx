@@ -16,7 +16,12 @@ import { atRisk, nodeRadius, type ClusterSummary, type MapTicket } from "./model
 interface Node extends SimulationNodeDatum {
   id: string;
   ticket: MapTicket;
+  /** Quando entrou no mapa (ms do relógio de animação), para a entrada crescer em vez de surgir. */
+  born: number;
 }
+
+const ENTRY_MS = 450;
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
 
 const MODE_LABELS: Record<string, string> = {
   ai: "com a IA",
@@ -24,7 +29,9 @@ const MODE_LABELS: Record<string, string> = {
   human: "com humano",
 };
 
-const COLORS = { bg: "#0b0c0e", label: "#8b9099", count: "#5b6068", pending: "#e8b04a", human: "#3fbf7f", risk: "#f0626b" };
+// Mesmos valores dos tokens de index.css (o canvas não lê variáveis CSS a cada quadro).
+const COLORS = { label: "#a8a6a1", count: "#8f8d88", pending: "#f0883e", human: "#24d332", risk: "#ff6b5a" };
+const MONO = '"IBM Plex Mono", ui-monospace, monospace';
 
 // Desenha o grafo do mapa vivo em canvas, com a física do d3-force (ADR 0007, I3). Os grupos ficam em volta de
 // um círculo; os nós de cada grupo são puxados para o centro dele e se empurram para não se sobrepor.
@@ -136,6 +143,7 @@ export function MapCanvas({
         next.set(ticket.id, {
           id: ticket.id,
           ticket,
+          born: performance.now(),
           x: (center?.x ?? size.current.width / 2) + (Math.random() - 0.5) * 40,
           y: (center?.y ?? size.current.height / 2) + (Math.random() - 0.5) * 40,
         });
@@ -167,8 +175,7 @@ export function MapCanvas({
       }
       const now = new Date();
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      context.fillStyle = COLORS.bg;
-      context.fillRect(0, 0, width, height);
+      context.clearRect(0, 0, width, height);
 
       // Rótulo acima do nó mais alto do grupo e no meio dos nós de verdade (o grupo se desloca com os empurrões).
       const extents = new Map<string, { top: number; sumX: number; count: number }>();
@@ -185,13 +192,13 @@ export function MapCanvas({
         const extent = extents.get(key);
         const top = Math.max(extent?.top ?? center.y, 30);
         context.fillStyle = COLORS.label;
-        context.font = "500 12px Inter, system-ui, sans-serif";
+        context.font = `500 12px ${MONO}`;
         // O texto inteiro fica dentro da área, mesmo nos grupos da borda.
         const half = context.measureText(center.label).width / 2 + 4;
         const x = Math.min(Math.max(extent ? extent.sumX / extent.count : center.x, half), width - half);
         context.fillText(center.label, x, top - 20);
         context.fillStyle = COLORS.count;
-        context.font = "11px Inter, system-ui, sans-serif";
+        context.font = `11px ${MONO}`;
         context.fillText(String(center.count), x, top - 7);
       }
 
@@ -200,7 +207,18 @@ export function MapCanvas({
         const { ticket } = node;
         const x = node.x ?? 0;
         const y = node.y ?? 0;
-        const r = nodeRadius(ticket.priority);
+        const age = reduceMotion ? 1 : Math.min((time - node.born) / ENTRY_MS, 1);
+        const r = nodeRadius(ticket.priority) * (age < 1 ? easeOut(Math.max(age, 0)) : 1);
+        if (age < 1) {
+          // Chegada: um anel que se abre e some, para o olho achar o ticket novo.
+          context.beginPath();
+          context.arc(x, y, nodeRadius(ticket.priority) + 14 * easeOut(Math.max(age, 0)), 0, Math.PI * 2);
+          context.strokeStyle = colorRef.current(ticket.cluster.key);
+          context.globalAlpha = 0.6 * (1 - age);
+          context.lineWidth = 1.25;
+          context.stroke();
+          context.globalAlpha = 1;
+        }
 
         if (atRisk(ticket, now)) {
           context.beginPath();
@@ -253,7 +271,10 @@ export function MapCanvas({
   const due = hovered ? dueLabel(hovered.first_response_due_at, hovered.first_human_response_at) : null;
 
   return (
-    <div ref={wrapper} className="relative h-full w-full overflow-hidden">
+    <div
+      ref={wrapper}
+      className="relative h-full w-full overflow-hidden bg-bg bg-[radial-gradient(circle,var(--color-line)_1px,transparent_1px)] bg-size-[24px_24px]"
+    >
       <canvas
         ref={canvas}
         role="img"
@@ -268,19 +289,19 @@ export function MapCanvas({
       />
       {hovered && hover && (
         <div
-          className="pointer-events-none absolute z-10 w-56 rounded-md border border-line bg-surface p-2.5 text-xs shadow-xl"
+          className="pointer-events-none absolute z-10 w-60 rounded-lg border border-line-strong bg-surface/95 p-3 text-xs shadow-[0_12px_32px_-8px_rgb(0_0_0/0.8)] backdrop-blur-sm"
           style={{ left: hover.left, top: hover.top }}
         >
           <p className="font-medium text-text">
             {hovered.cluster.label} · <span className="font-mono uppercase">{hovered.priority}</span>
           </p>
-          <p className="mt-0.5 text-muted">
+          <p className="mt-1 text-muted">
             {BRAND_LABELS[hovered.brand] ?? hovered.brand} · {CHANNEL_LABELS[hovered.channel] ?? hovered.channel} ·{" "}
             {MODE_LABELS[hovered.mode] ?? hovered.mode}
           </p>
-          {hovered.queue && <p className="text-faint">fila {hovered.queue}</p>}
-          {hovered.mode !== "ai" && due && <p className="text-faint">{due.text}</p>}
-          {onOpen && <p className="mt-1 text-accent">Clique para abrir</p>}
+          {hovered.queue && <p className="font-mono text-[11px] text-faint">fila {hovered.queue}</p>}
+          {hovered.mode !== "ai" && due && <p className="font-mono text-[11px] text-faint">{due.text}</p>}
+          {onOpen && <p className="mt-1.5 text-accent">Clique para abrir</p>}
         </div>
       )}
     </div>

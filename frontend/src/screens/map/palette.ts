@@ -1,6 +1,7 @@
 // Cores dos grupos do mapa. Cada grupo novo recebe a próxima cor livre e a mantém enquanto existir: a ordem por
 // tamanho muda o tempo todo, e a cor de um grupo não pode pular. Com mais grupos que cores, elas se repetem.
-export const PALETTE = ["#6b74f0", "#3fd37c", "#f2a93b", "#e36f9c", "#4cc3d9", "#b48cf2", "#e8d44d", "#f07f5a", "#7fb8ff", "#9fd36b"];
+// Sem verde puro nem laranja: são as cores dos anéis "com humano" e "esperando humano".
+export const PALETTE = ["#6f95ff", "#4cc3d9", "#e8d44d", "#e36f9c", "#c9a7ff", "#9fd36b", "#ecebe9", "#f2b8a0", "#7fb8ff", "#d4b483"];
 
 export function assignColors(keys: string[], previous: ReadonlyMap<string, string>): Map<string, string> {
   const next = new Map<string, string>();

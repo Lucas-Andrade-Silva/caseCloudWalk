@@ -1,5 +1,7 @@
 import type { WorkItem } from "../../lib/api";
 import { BRAND_LABELS, CHANNEL_LABELS, TONE_CLASSES, customerName, dueLabel } from "../../lib/format";
+import { BrandDot } from "../../ui/BrandDot";
+import { PriorityTag } from "../../ui/PriorityTag";
 
 interface TicketListProps {
   label: string;
@@ -13,14 +15,14 @@ interface TicketListProps {
 export function TicketList({ label, empty, items, selectedId, onSelect, extra }: TicketListProps) {
   return (
     <section aria-label={label} className="border-b border-line">
-      <h2 className="flex items-center justify-between px-3 pt-3 pb-1 text-xs font-medium text-muted">
+      <h2 className="flex items-center justify-between px-4 pt-4 pb-1.5 font-mono text-[11px] text-faint lowercase">
         <span>{label}</span>
-        {extra && <span className="text-faint">{extra}</span>}
+        {extra && <span className="tabular text-muted">{extra}</span>}
       </h2>
       {items.length === 0 ? (
-        <p className="px-3 pb-3 text-xs text-faint">{empty}</p>
+        <p className="px-4 pb-4 text-xs text-faint">{empty}</p>
       ) : (
-        <ul className="pb-2">
+        <ul className="px-2 pb-2">
           {items.map((item) => (
             <li key={item.id}>
               <TicketRow item={item} selected={item.id === selectedId} onSelect={onSelect} />
@@ -37,25 +39,24 @@ function TicketRow({ item, selected, onSelect }: { item: WorkItem; selected: boo
   const content = (
     <>
       <span className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className={`size-1.5 shrink-0 rounded-full ${item.brand === "jim" ? "bg-brand-jim" : "bg-brand-infinitepay"}`}
-        />
-        <span className="truncate text-sm text-text">{customerName(item.customer)}</span>
-        <span className="ml-auto shrink-0 font-mono text-[11px] text-muted uppercase">{item.priority}</span>
+        <BrandDot brand={item.brand} />
+        <span className="truncate text-sm font-medium text-text">{customerName(item.customer)}</span>
+        <PriorityTag priority={item.priority} className="ml-auto" />
       </span>
-      {item.last_message && <span className="mt-0.5 block truncate text-xs text-muted">{item.last_message.text}</span>}
-      <span className="mt-1 flex items-center gap-2 text-[11px]">
-        <span className="text-faint">
+      {item.last_message && (
+        <span className="mt-1 block truncate pl-3.5 text-xs text-muted">{item.last_message.text}</span>
+      )}
+      <span className="mt-1.5 flex items-center gap-2 pl-3.5 font-mono text-[11px]">
+        <span className="truncate text-faint">
           {BRAND_LABELS[item.brand] ?? item.brand} · {CHANNEL_LABELS[item.channel] ?? item.channel}
           {item.queue && ` · ${item.queue}`}
         </span>
-        <span className={`ml-auto shrink-0 ${TONE_CLASSES[due.tone]}`}>{due.text}</span>
+        <span className={`ml-auto shrink-0 tabular ${TONE_CLASSES[due.tone]}`}>{due.text}</span>
       </span>
     </>
   );
 
-  const base = "block w-full px-3 py-2 text-left";
+  const base = "block w-full rounded-md px-2.5 py-2.5 text-left";
   if (!onSelect) return <div className={base}>{content}</div>;
 
   return (
@@ -63,7 +64,7 @@ function TicketRow({ item, selected, onSelect }: { item: WorkItem; selected: boo
       type="button"
       onClick={() => onSelect(item.id)}
       aria-current={selected ? "true" : undefined}
-      className={`${base} hover:bg-elevated ${selected ? "bg-elevated" : ""}`}
+      className={`${base} transition-colors duration-150 ${selected ? "bg-elevated" : "hover:bg-surface"}`}
     >
       {content}
     </button>

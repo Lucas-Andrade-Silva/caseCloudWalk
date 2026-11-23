@@ -1,3 +1,4 @@
+import { Bot, Send } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { ResolutionCode, TicketDetail } from "../../lib/api";
 import {
@@ -9,6 +10,11 @@ import {
   dueLabel,
   timeOfDay,
 } from "../../lib/format";
+import { BrandDot } from "../../ui/BrandDot";
+import { Button } from "../../ui/Button";
+import { Kbd } from "../../ui/Kbd";
+import { PriorityTag } from "../../ui/PriorityTag";
+import { fieldClass } from "../../ui/field";
 import { CloseTicketDialog } from "./CloseTicketDialog";
 
 interface ConversationProps {
@@ -16,6 +22,12 @@ interface ConversationProps {
   onSend: (text: string) => Promise<void>;
   onClose: (code: ResolutionCode, note: string) => Promise<void>;
 }
+
+const BUBBLES: Record<string, string> = {
+  analyst: "bg-accent/12 text-text ring-1 ring-accent/25",
+  bot: "bg-surface text-text ring-1 ring-line-strong",
+  customer: "bg-elevated text-text",
+};
 
 export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
   const due = dueLabel(ticket.first_response_due_at, ticket.first_human_response_at);
@@ -27,38 +39,37 @@ export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
   }, [count]);
 
   return (
-    <section aria-label="Conversa" className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
+    <section aria-label="Conversa" className="flex min-w-0 flex-1 flex-col bg-bg">
+      <header className="flex min-h-14 items-center gap-3 border-b border-line px-5 py-2.5">
         <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold">{customerName(ticket.customer)}</h1>
-          <p className="text-xs text-muted">
+          <h1 className="flex items-center gap-2 truncate text-[15px] font-semibold tracking-tight">
+            <BrandDot brand={ticket.brand} />
+            {customerName(ticket.customer)}
+            <PriorityTag priority={ticket.priority} />
+          </h1>
+          <p className="mt-0.5 truncate font-mono text-[11px] text-faint">
             {BRAND_LABELS[ticket.brand] ?? ticket.brand} · {CHANNEL_LABELS[ticket.channel] ?? ticket.channel}
-            {ticket.queue && ` · ${ticket.queue}`} · <span className="font-mono uppercase">{ticket.priority}</span>
+            {ticket.queue && ` · ${ticket.queue}`}
           </p>
         </div>
-        <span className={`ml-auto text-xs ${TONE_CLASSES[due.tone]}`}>{due.text}</span>
+        <span className={`ml-auto shrink-0 font-mono text-xs whitespace-nowrap tabular ${TONE_CLASSES[due.tone]}`}>
+          {due.text}
+        </span>
         {ticket.mode === "human" && <CloseTicketDialog onConfirm={onClose} />}
       </header>
 
-      <ol className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <ol className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
         {ticket.messages.map((message) => {
           const ours = message.sender !== "customer";
           return (
-            <li key={message.id} className={`flex ${ours ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                  message.sender === "analyst"
-                    ? "bg-accent/20 text-text"
-                    : message.sender === "bot"
-                      ? "border border-line bg-surface text-text"
-                      : "bg-elevated text-text"
-                }`}
-              >
-                <p className="text-[11px] text-muted">
-                  {SENDER_LABELS[message.sender]} · {timeOfDay(message.created_at)}
-                  {message.stale && " · atrasada"}
+            <li key={message.id} className={`flex animate-rise ${ours ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[68%] rounded-lg px-3.5 py-2.5 ${BUBBLES[message.sender] ?? BUBBLES.customer}`}>
+                <p className="flex items-center gap-1.5 font-mono text-[11px] text-faint">
+                  {message.sender === "bot" && <Bot aria-hidden className="size-3 text-accent" strokeWidth={2} />}
+                  {SENDER_LABELS[message.sender]} · <time className="tabular">{timeOfDay(message.created_at)}</time>
+                  {message.stale && <span className="text-warning"> · atrasada</span>}
                 </p>
-                <p className="mt-0.5 text-sm whitespace-pre-wrap">{message.text}</p>
+                <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
               </div>
             </li>
           );
@@ -69,7 +80,7 @@ export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
       {ticket.mode === "human" ? (
         <Composer onSend={onSend} />
       ) : (
-        <p className="border-t border-line px-4 py-3 text-xs text-faint">Pegue o ticket para responder.</p>
+        <p className="border-t border-line px-5 py-4 text-xs text-faint">Pegue o ticket para responder.</p>
       )}
     </section>
   );
@@ -102,7 +113,7 @@ function Composer({ onSend }: { onSend: (text: string) => Promise<void> }) {
   }
 
   return (
-    <form onSubmit={submit} className="border-t border-line p-3">
+    <form onSubmit={submit} className="border-t border-line px-5 py-4">
       <label htmlFor="reply" className="sr-only">
         Resposta ao cliente
       </label>
@@ -113,22 +124,22 @@ function Composer({ onSend }: { onSend: (text: string) => Promise<void> }) {
         onKeyDown={onKeyDown}
         rows={3}
         placeholder="Escreva para o cliente…"
-        className="w-full resize-none rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-accent"
+        className={`${fieldClass} resize-none py-2.5 leading-relaxed`}
       />
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-2.5 flex items-center gap-3">
         {error && (
           <p role="alert" className="text-xs text-danger">
             {error}
           </p>
         )}
-        <span className="ml-auto text-[11px] text-faint">Ctrl + Enter</span>
-        <button
-          type="submit"
-          disabled={busy || !text.trim()}
-          className="h-8 rounded-md bg-accent px-3 text-sm font-medium text-white disabled:opacity-40"
-        >
+        <span className="ml-auto flex items-center gap-1 text-[11px] text-faint">
+          <Kbd>Ctrl</Kbd>
+          <Kbd>Enter</Kbd>
+        </span>
+        <Button type="submit" variant="primary" size="sm" busy={busy} disabled={!text.trim()}>
+          <Send aria-hidden className="size-3.5" strokeWidth={2} />
           Enviar
-        </button>
+        </Button>
       </div>
     </form>
   );

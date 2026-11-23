@@ -1,3 +1,4 @@
+import { Inbox } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   closeTicket,
@@ -9,6 +10,7 @@ import {
 } from "../../lib/api";
 import { navigate, useHashRoute } from "../../lib/useHashRoute";
 import { usePolling } from "../../lib/usePolling";
+import { Button } from "../../ui/Button";
 import { ContextPanel } from "./ContextPanel";
 import { Conversation } from "./Conversation";
 import { TicketList } from "./TicketList";
@@ -66,16 +68,11 @@ export function AnalystWorkspace({ token }: { token: string }) {
 
   return (
     <div className="flex h-screen min-w-0 flex-1">
-      <aside className="flex w-80 shrink-0 flex-col border-r border-line">
+      <aside className="flex w-80 shrink-0 flex-col border-r border-line bg-bg">
         <div className="border-b border-line p-3">
-          <button
-            type="button"
-            onClick={pickNext}
-            disabled={taking}
-            className="h-8 w-full rounded-md bg-accent text-sm font-medium text-white hover:opacity-90 disabled:opacity-40"
-          >
+          <Button variant="primary" onClick={pickNext} busy={taking} className="w-full">
             Pegar o próximo
-          </button>
+          </Button>
           {notice && (
             <p role="status" className="mt-2 text-xs text-muted">
               {notice}
@@ -101,7 +98,7 @@ export function AnalystWorkspace({ token }: { token: string }) {
               />
             </>
           ) : (
-            <p className="p-3 text-xs text-faint">{work.error ? "Não foi possível carregar a fila." : "Carregando…"}</p>
+            <p className="p-4 text-xs text-faint">{work.error ? "Não foi possível carregar a fila." : "Carregando…"}</p>
           )}
         </div>
       </aside>
@@ -109,13 +106,14 @@ export function AnalystWorkspace({ token }: { token: string }) {
       {current ? (
         <>
           <Conversation ticket={current} onSend={send} onClose={close} />
-          <aside className="w-80 shrink-0 border-l border-line">
+          <aside className="w-80 shrink-0 overflow-y-auto border-l border-line bg-bg">
             <ContextPanel ticket={current} />
           </aside>
         </>
       ) : (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-faint">
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+          <Inbox aria-hidden className="size-6 text-faint" strokeWidth={1.5} />
+          <p className="max-w-xs text-sm text-muted">
             {selectedId ? "Carregando a conversa…" : "Pegue o próximo ticket ou escolha um dos seus."}
           </p>
         </div>

@@ -1,3 +1,4 @@
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import type { Queue } from "../../lib/opsApi";
 import { defaultCondition, type Catalog, type Condition, type EditableRule, type SimpleRule } from "./rules/builder";
 
@@ -30,7 +31,9 @@ const OPERATOR_LABELS: Record<string, string> = {
 
 const PRIORITIES = ["p1", "p2", "p3", "p4"];
 
-const control = "h-8 rounded-md border border-line bg-bg px-2 text-xs text-text outline-none focus:border-accent disabled:opacity-60";
+const iconButton =
+  "flex size-7 items-center justify-center rounded-md text-faint transition-colors duration-150 hover:bg-elevated hover:text-text disabled:pointer-events-none disabled:opacity-30";
+const control = "h-8 rounded-md border border-line-strong bg-surface px-2.5 text-xs text-text outline-none transition-colors duration-150 hover:border-faint focus:border-accent disabled:opacity-60 disabled:hover:border-line-strong";
 
 interface RuleCardProps {
   rule: EditableRule;
@@ -54,7 +57,7 @@ export function RuleCard({ rule, index, total, catalog, queues, editable, errors
       className="rounded-lg border border-line bg-surface p-4"
     >
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] text-faint">{index + 1}</span>
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-elevated font-mono text-[11px] text-muted tabular">{index + 1}</span>
         {rule.kind === "simple" ? (
           <>
             <label htmlFor={`rule-name-${index}`} className="sr-only">
@@ -65,22 +68,22 @@ export function RuleCard({ rule, index, total, catalog, queues, editable, errors
               value={rule.name}
               disabled={!editable}
               onChange={(event) => onChange({ ...rule, name: event.target.value })}
-              className="h-8 flex-1 rounded-md border border-transparent bg-transparent px-2 text-sm font-medium text-text outline-none hover:border-line focus:border-accent disabled:hover:border-transparent"
+              className="h-8 flex-1 rounded-md border border-transparent bg-transparent px-2 text-sm font-medium text-text outline-none hover:border-line-strong focus:border-accent disabled:hover:border-transparent"
             />
           </>
         ) : (
           <p className="flex-1 px-2 text-sm font-medium">{rule.raw.name}</p>
         )}
         {editable && (
-          <div className="flex gap-1">
-            <button type="button" disabled={index === 0} onClick={() => onMove(-1)} className="h-7 rounded px-2 text-xs text-muted hover:bg-elevated disabled:opacity-30">
-              Subir
+          <div className="flex gap-0.5">
+            <button type="button" aria-label="Subir" title="Subir" disabled={index === 0} onClick={() => onMove(-1)} className={iconButton}>
+              <ArrowUp aria-hidden className="size-3.5" strokeWidth={2} />
             </button>
-            <button type="button" disabled={index === total - 1} onClick={() => onMove(1)} className="h-7 rounded px-2 text-xs text-muted hover:bg-elevated disabled:opacity-30">
-              Descer
+            <button type="button" aria-label="Descer" title="Descer" disabled={index === total - 1} onClick={() => onMove(1)} className={iconButton}>
+              <ArrowDown aria-hidden className="size-3.5" strokeWidth={2} />
             </button>
-            <button type="button" onClick={onRemove} className="h-7 rounded px-2 text-xs text-muted hover:text-danger">
-              Remover regra
+            <button type="button" aria-label="Remover regra" title="Remover regra" onClick={onRemove} className={`${iconButton} hover:bg-danger/12 hover:text-danger`}>
+              <Trash2 aria-hidden className="size-3.5" strokeWidth={2} />
             </button>
           </div>
         )}
@@ -237,7 +240,7 @@ function SimpleBody({
           <button
             type="button"
             onClick={() => onChange({ ...rule, conditions: [...rule.conditions, defaultCondition(catalog)] })}
-            className="mt-2 text-xs text-accent hover:underline"
+            className="mt-2 text-xs text-accent underline-offset-2 hover:underline"
           >
             Adicionar condição
           </button>
@@ -245,7 +248,7 @@ function SimpleBody({
       </div>
 
       <div className="space-y-2 border-line lg:border-l lg:pl-4">
-        <p className="text-xs text-muted">Então</p>
+        <p className="font-mono text-[11px] text-accent">então</p>
         <label className="block text-[11px] text-faint" htmlFor={`queue-${index}`}>
           Fila
         </label>

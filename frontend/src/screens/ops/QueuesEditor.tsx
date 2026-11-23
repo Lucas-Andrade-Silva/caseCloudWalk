@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+import { fieldClass, labelClass } from "../../ui/field";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { BRAND_LABELS } from "../../lib/format";
 import {
@@ -23,9 +25,8 @@ interface Data {
   analysts: Analyst[];
 }
 
-const input =
-  "h-8 w-full rounded-md border border-line bg-bg px-2.5 text-sm text-text outline-none focus:border-accent";
-const button = "h-8 rounded-md border border-line px-3 text-xs text-text hover:bg-elevated disabled:opacity-40";
+const input = `${fieldClass} h-8`;
+const button = "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-line-strong bg-surface px-3 text-xs font-medium text-text transition-colors duration-150 hover:border-faint hover:bg-elevated disabled:pointer-events-none disabled:opacity-40";
 
 // Filas e equipes (ADR 0007, I11): a operação muda o roteamento humano sem depender de desenvolvimento.
 export function QueuesEditor({ token }: { token: string }) {
@@ -70,8 +71,8 @@ export function QueuesEditor({ token }: { token: string }) {
 
       <div className="grid gap-6 xl:grid-cols-2">
         {BRANDS.map((brand) => (
-          <section key={brand} aria-label={`Filas ${BRAND_LABELS[brand]}`} className="rounded-lg border border-line">
-            <h2 className="border-b border-line px-4 py-2.5 text-xs font-medium text-muted">
+          <section key={brand} aria-label={`Filas ${BRAND_LABELS[brand]}`} className="rounded-lg border border-line bg-surface">
+            <h2 className="flex items-center gap-2 border-b border-line px-4 py-3 text-sm font-semibold text-text">
               Filas {BRAND_LABELS[brand]}
             </h2>
             <ul className="divide-y divide-line">
@@ -94,7 +95,7 @@ export function QueuesEditor({ token }: { token: string }) {
       <NewQueue teams={data.teams} onCreate={(queue) => createQueue(token, queue).then(load)} />
 
       <div>
-        <h2 className="text-xs font-medium text-muted">Equipes</h2>
+        <h2 className="text-sm font-semibold text-text">Equipes</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.teams.map((team) => (
             <TeamCard
@@ -150,8 +151,8 @@ function QueueRow({
         ) : (
           <p className="flex items-center gap-2 text-sm">
             <span className="truncate">{queue.name}</span>
-            {queue.default && <span className="rounded border border-line px-1.5 text-[10px] text-muted">padrão</span>}
-            <button type="button" onClick={() => setEditing(true)} className="text-[11px] text-faint hover:text-text">
+            {queue.default && <span className="rounded border border-accent/40 px-1.5 font-mono text-[10px] text-accent">padrão</span>}
+            <button type="button" onClick={() => setEditing(true)} className="text-[11px] text-faint underline-offset-2 hover:text-text hover:underline">
               Renomear
             </button>
           </p>
@@ -165,7 +166,7 @@ function QueueRow({
         id={`team-${queue.id}`}
         value={queue.team.id}
         onChange={(event) => onTeam(event.target.value)}
-        className="h-8 w-48 rounded-md border border-line bg-bg px-2 text-xs text-text"
+        className="h-8 w-48 rounded-md border border-line-strong bg-bg px-2.5 text-xs text-text outline-none hover:border-faint focus:border-accent"
       >
         {teams.map((team) => (
           <option key={team.id} value={team.id}>
@@ -203,8 +204,8 @@ function NewQueue({
   }
 
   return (
-    <form aria-label="Nova fila" onSubmit={submit} className="rounded-lg border border-line p-4">
-      <h2 className="text-xs font-medium text-muted">Nova fila</h2>
+    <form aria-label="Nova fila" onSubmit={submit} className="rounded-lg border border-dashed border-line-strong p-5">
+      <h2 className="text-sm font-semibold text-text">Nova fila</h2>
       <div className="mt-3 grid gap-3 md:grid-cols-4">
         <Field id="queue-brand" label="Marca">
           <select id="queue-brand" value={brand} onChange={(event) => setBrand(event.target.value)} className={input}>
@@ -261,23 +262,23 @@ function TeamCard({
   const choice = candidates.some((analyst) => analyst.id === selected) ? selected : (candidates[0]?.id ?? "");
 
   return (
-    <section aria-label={`Equipe ${team.name}`} className="rounded-lg border border-line p-4">
-      <h3 className="text-sm font-medium">{team.name}</h3>
-      <p className="mt-0.5 text-[11px] text-faint">
+    <section aria-label={`Equipe ${team.name}`} className="rounded-lg border border-line bg-surface p-4">
+      <h3 className="text-sm font-semibold">{team.name}</h3>
+      <p className="mt-0.5 font-mono text-[11px] text-faint">
         {team.queues.length > 0 ? `Filas: ${team.queues.join(", ")}` : "Sem filas"}
       </p>
       <ul className="mt-3 flex flex-wrap gap-1.5">
         {team.members.length === 0 && <li className="text-xs text-faint">Sem analistas.</li>}
         {team.members.map((member) => (
-          <li key={member.id} className="flex items-center gap-1 rounded-md bg-elevated py-0.5 pr-1 pl-2 text-xs">
+          <li key={member.id} className="flex items-center gap-1 rounded-md bg-elevated py-0.5 pr-0.5 pl-2 text-xs">
             {member.name}
             <button
               type="button"
               aria-label={`Remover ${member.name}`}
               onClick={() => onRemove(member.id)}
-              className="rounded px-1 text-faint hover:text-danger"
+              className="flex size-5 items-center justify-center rounded text-faint transition-colors hover:bg-danger/12 hover:text-danger"
             >
-              ×
+              <X aria-hidden className="size-3" strokeWidth={2} />
             </button>
           </li>
         ))}
@@ -291,7 +292,7 @@ function TeamCard({
             id={`add-${team.id}`}
             value={choice}
             onChange={(event) => setSelected(event.target.value)}
-            className="h-8 flex-1 rounded-md border border-line bg-bg px-2 text-xs text-text"
+            className="h-8 flex-1 rounded-md border border-line-strong bg-bg px-2.5 text-xs text-text outline-none hover:border-faint focus:border-accent"
           >
             {candidates.map((analyst) => (
               <option key={analyst.id} value={analyst.id}>
@@ -326,8 +327,8 @@ function NewTeam({ onCreate }: { onCreate: (team: { slug: string; name: string }
   }
 
   return (
-    <form aria-label="Nova equipe" onSubmit={submit} className="rounded-lg border border-line p-4">
-      <h2 className="text-xs font-medium text-muted">Nova equipe</h2>
+    <form aria-label="Nova equipe" onSubmit={submit} className="rounded-lg border border-dashed border-line-strong p-5">
+      <h2 className="text-sm font-semibold text-text">Nova equipe</h2>
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <Field id="team-name" label="Nome da equipe">
           <input id="team-name" value={name} onChange={(event) => setName(event.target.value)} className={input} />
@@ -353,10 +354,10 @@ function NewTeam({ onCreate }: { onCreate: (team: { slug: string; name: string }
 function Field({ id, label, children }: { id: string; label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label htmlFor={id} className="text-xs text-muted">
+      <label htmlFor={id} className={labelClass}>
         {label}
       </label>
-      <div className="mt-1">{children}</div>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }

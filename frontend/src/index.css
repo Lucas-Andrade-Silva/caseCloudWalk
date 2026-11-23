@@ -1,23 +1,40 @@
 @import "tailwindcss";
 
-/* Tema escuro único e denso (ADR 0007, I1). As cores são tokens: trocar o tema é trocar estes valores. */
+/*
+ * Tema escuro único e denso (ADR 0007, I1) no visual da CloudWalk (escolha do dono, ADR 0009):
+ * quase preto, branco quente, verde terminal e IBM Plex Mono para dados. Todo texto passa de 4,5:1
+ * sobre bg, surface e elevated (conferido). Trocar o tema é trocar estes valores.
+ */
 @theme {
-  --color-bg: #0b0c0e;
-  --color-surface: #111215;
-  --color-elevated: #191a1f;
-  --color-line: #24262c;
-  --color-text: #e7e8ea;
-  --color-muted: #8b9099;
-  --color-faint: #5b6068;
-  --color-accent: #6b74f0;
-  --color-danger: #f0626b;
-  --color-warning: #e8b04a;
-  --color-success: #3fbf7f;
-  --color-brand-infinitepay: #3fd37c;
-  --color-brand-jim: #f2a93b;
+  --color-bg: #0d0d0d;
+  --color-surface: #141414;
+  --color-elevated: #1c1c1c;
+  --color-line: #262626;
+  --color-line-strong: #363636;
+  --color-text: #ecebe9;
+  --color-muted: #a8a6a1;
+  --color-faint: #8f8d88;
+  --color-accent: #24d332;
+  --color-accent-strong: #3be049;
+  --color-on-accent: #0d0d0d;
+  --color-danger: #ff6b5a;
+  --color-warning: #f0883e;
+  --color-success: #24d332;
+  --color-info: #6f95ff;
+  --color-brand-infinitepay: #06dd55;
+  --color-brand-jim: #7aa2ff;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", monospace;
+
+  --animate-rise: rise 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
 }
 
 html {
@@ -29,5 +46,50 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: 14px;
+  font-feature-settings: "cv11", "ss01";
+  color: var(--color-text);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Superfícies do navegador também levam o tema. */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+input,
+textarea {
+  caret-color: var(--color-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+
+time,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
