@@ -36,14 +36,14 @@ export function ContextPanel({ ticket }: { ticket: TicketDetail }) {
         {(facts?.category || facts?.frustration || ticket.tags.length > 0) && (
           <ul aria-label="Fatos do ticket" className="mt-3 flex flex-wrap gap-1.5">
             {facts?.category && (
-              <li className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+              <li className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent-ink">
                 categoria: {facts.category}
               </li>
             )}
             {facts?.frustration && (
               <li
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  facts.frustration === "alta" ? "bg-danger/10 text-danger" : "bg-elevated text-muted"
+                  facts.frustration === "alta" ? "bg-danger/10 text-danger-ink" : "bg-elevated text-muted"
                 }`}
               >
                 frustração: {facts.frustration}
