@@ -32,6 +32,17 @@ RSpec.describe Broker::ReplyPipeline do
     expect(produced).to be_empty
   end
 
+  it "manda a resposta inválida (veneno) direto para a DLQ, sem retentativas, e segue com as próximas" do
+    action = pipeline(:invalid).handle(message(headers: { "brand_id" => "jim" }), now: now)
+
+    expect(action).to eq(Broker::ReplyPipeline::Action.ack)
+    expect(produced).to eq([ {
+      topic: "agent.replies.dlq", key: "ticket-1", payload: '{"a":1}',
+      headers: { "brand_id" => "jim", "x-attempt" => "1", "x-error" => "plataforma recusou a resposta como inválida (422)",
+                 "x-original-topic" => "agent.replies" }
+    } ])
+  end
+
   it "pausa e repete a mesma mensagem, sem gastar tentativa, quando a plataforma está fora" do
     [ Broker::ReplyForwarder::PlatformUnavailable.new("503"), Errno::ECONNREFUSED.new, Net::OpenTimeout.new ].each do |error|
       action = pipeline(error).handle(message, now: now)

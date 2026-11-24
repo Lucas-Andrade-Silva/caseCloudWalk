@@ -41,13 +41,13 @@ Reta final (entrega **2026-11-27**). Tudo o que o ADR 0009 pediu está **commita
   | `mock-agent-test` | 22 |
   | `web-test` | 61 testes, tipos e lint |
 
-  Com o Docker fora, rode `npm run gate` em `frontend/`. **Ponta a ponta:** `./scripts/e2e/run.ps1` (Playwright 1.65.0; 2 jornadas, verdes 2 vezes).
+  Com o Docker fora, rode `npm run gate` em `frontend/`. **Ponta a ponta:** `./scripts/e2e/run.ps1` (Playwright 1.65.0 + axe 4.14.0: 2 jornadas, axe WCAG 2.1 AA e teclado; 4 verdes com a LLM ao vivo).
 - **Interface:** `http://127.0.0.1:5173` (nunca `localhost`): `#/painel`, `#/fila`, `#/mapa`, `#/operacao`, `#/cliente`.
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`. Grafana em `:3030`,
   Jaeger em `:16686` e Prometheus em `:9090`.
 - **Banco de demo:** `docker compose exec api bundle exec rails demo:reset`. Só em desenvolvimento; cria a
   cliente `demo-marina` com histórico.
-- **Resiliência ao vivo:** `./scripts/demo/resiliencia.ps1 -Cenario kafka|agente`.
+- **Resiliência ao vivo:** `./scripts/demo/resiliencia.ps1 -Cenario kafka|agente` e `./scripts/demo/veneno.ps1` (S4).
 - **Experimento oficial:** `./scripts/experiment/run.ps1 -Cenarios S1,S2,S3 -Rodadas 3`.
   Pilha em modo de produção (`helpdesk-pilot`) com k6; para a de desenvolvimento e a religa; `-Curto` ensaia.
 - **Rajada e invariantes:** `load:burst[n,taxa,reentrega,seed]` e `invariants:check[ledger,espera_s]`.
@@ -100,7 +100,7 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Pendências do dono
 
-- Pôr `LLM_MODE=live` no `.env` para a demo, ou gravar o replay com `LLM_RECORD=true`.
+- `.env` está com `LLM_MODE=live` desde 2026-11-24. Resposta inválida (422) do agente vai para a DLQ (ADR 0009, W9).
 - Confirmar as cores das marcas InfinitePay e JIM (provisórias).
 - RLS (ADR 0002, D10), regras em linguagem natural e estimativa de espera (D7): declarar como limitações?
 - O dia 27 inclui a apresentação?
