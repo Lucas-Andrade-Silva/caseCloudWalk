@@ -266,6 +266,21 @@ services:
     profiles: ["test"]
     command: ["npm", "run", "gate"]
 
+  # Ponta a ponta no navegador (Playwright) contra a pilha no ar. Roda na rede do serviço web, então o navegador
+  # acessa http://localhost:5173 como um usuário. Prepare o banco com demo:reset antes: scripts/e2e/run.ps1.
+  e2e:
+    # 1.65.0: a versão mais nova publicada há pelo menos 14 dias (2026-11-05); a imagem já traz o Chromium.
+    image: mcr.microsoft.com/playwright:v1.65.0-noble
+    profiles: ["e2e"]
+    working_dir: /e2e
+    network_mode: "service:web"
+    environment:
+      CI: "true"
+    volumes:
+      - ./e2e:/e2e
+      - e2e-node-modules:/e2e/node_modules
+    command: ["sh", "-c", "npm ci --no-audit --no-fund && npx playwright test"]
+
   # Observabilidade (ADR 0002, D13; ADR 0008). Sobe com o perfil obs:
   #   OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d
   # Jaeger 2 recebe OTLP direto (já é um coletor OpenTelemetry). Interface: http://127.0.0.1:16686
@@ -319,3 +334,4 @@ volumes:
   broker-bundle:
   mock-agent-bundle:
   web-node-modules:
+  e2e-node-modules:
