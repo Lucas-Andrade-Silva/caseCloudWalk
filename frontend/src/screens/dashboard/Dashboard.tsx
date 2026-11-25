@@ -4,12 +4,13 @@ import { fetchDashboard, type DashboardMetrics, type Me } from "../../lib/api";
 import { CHANNEL_LABELS, timeOfDay } from "../../lib/format";
 import { usePolling } from "../../lib/usePolling";
 import { Button } from "../../ui/Button";
+import { LoadingScreen } from "../../ui/LoadingScreen";
 
 const REFRESH_MS = 15_000;
 
 // Paletas validadas (skill de dataviz, superfície branca): criados × resolvidos e canais (água-marinha abaixo de
 // 3:1, por isso todo canal leva rótulo e número visíveis).
-const SERIES = { created: "#16a34a", closed: "#6250d6" };
+const SERIES = { created: "#22c38e", closed: "#2fb8e8" };
 const CHANNEL_COLORS: Record<string, string> = { whatsapp: "#2a78d6", email: "#eb6834", app_chat: "#1baf7a" };
 const CHANNEL_ORDER = ["whatsapp", "email", "app_chat"];
 
@@ -279,10 +280,10 @@ export function Dashboard({ token, me }: { token: string; me: Me }) {
   const data = dashboard.data;
 
   if (!data) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8 text-sm text-faint">
-        {dashboard.error ? "Não foi possível carregar o painel." : "Carregando…"}
-      </div>
+    return dashboard.error ? (
+      <div className="flex flex-1 items-center justify-center p-8 text-sm text-faint">Não foi possível carregar o painel.</div>
+    ) : (
+      <LoadingScreen label="Carregando o painel…" />
     );
   }
 
@@ -291,7 +292,7 @@ export function Dashboard({ token, me }: { token: string; me: Me }) {
   const resolvedTotal = data.resolution.ai + data.resolution.human;
 
   return (
-    <div className="h-screen flex-1 overflow-y-auto">
+    <div className="h-full flex-1 overflow-y-auto">
       <header className="flex items-center gap-4 border-b border-line bg-surface px-8 py-4">
         <h1 className="text-xl font-semibold tracking-tight">Painel</h1>
         <p className="text-xs text-faint">
@@ -327,10 +328,10 @@ export function Dashboard({ token, me }: { token: string; me: Me }) {
           />
           <Kpi
             name="Primeira resposta humana"
-            value={data.first_reply.median_seconds === null ? "—" : durationText(data.first_reply.median_seconds)}
+            value={data.first_reply.mean_seconds === null ? "—" : durationText(data.first_reply.mean_seconds)}
             detail={
               data.first_reply.answered > 0
-                ? `mediana de ${data.first_reply.answered} respostas em 7 dias`
+                ? `tempo médio de ${data.first_reply.answered} respostas em 7 dias`
                 : "sem respostas ainda"
             }
           />

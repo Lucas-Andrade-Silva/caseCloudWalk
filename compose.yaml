@@ -134,6 +134,9 @@ services:
       <<: *backend-env
       # Chat do cliente simulado (ADR 0007, I7). Só em desenvolvimento e demonstração.
       CHANNEL_SIMULATOR_ENABLED: ${CHANNEL_SIMULATOR_ENABLED:-true}
+      # Sem recarregar o código a cada requisição (que custava ~1 s por chamada no disco do Windows). Depois de
+      # editar o backend: docker compose restart api. Para voltar ao recarregamento: RAILS_RELOAD=true.
+      RAILS_RELOAD: ${RAILS_RELOAD:-false}
     command: ["sh", "-c", "bundle exec rails db:prepare db:seed && bundle exec rails server -b 0.0.0.0"]
     ports:
       - "${API_PORT:-3000}:3000"

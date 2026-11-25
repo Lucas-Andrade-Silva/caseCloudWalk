@@ -37,11 +37,13 @@ test("as telas passam nas regras WCAG 2.1 AA do axe", async ({ browser }) => {
   await expectAccessible(marina, "chat do cliente (conversa)");
 
   const analyst = await signedIn(browser, "Ana");
-  await analyst.getByRole("link", { name: "Painel" }).click();
+  await expectAccessible(analyst, "tela inicial em cards");
+  await analyst.getByRole("link", { name: "Volume de tickets" }).click();
   await expect(analyst.getByRole("region", { name: "Indicadores" })).toBeVisible();
   await expectAccessible(analyst, "Painel");
 
   await escalatedTicketFor(analyst, `a11y-${Date.now()}`, "Cliente a11y", "minha maquininha não liga [escalar]");
+  await analyst.getByRole("link", { name: "Voltar" }).click();
   await analyst.getByRole("link", { name: "Fila" }).click();
   await expect(analyst.getByRole("region", { name: "Esperando nas suas filas" })).toContainText(/Cliente a11y/, { timeout: 30_000 });
   await analyst.getByRole("button", { name: "Pegar o próximo" }).click();
@@ -51,16 +53,38 @@ test("as telas passam nas regras WCAG 2.1 AA do axe", async ({ browser }) => {
   await expect(analyst.getByRole("figure", { name: "Texto que a LLM recebeu" })).toBeVisible();
   await expectAccessible(analyst, "Por que a IA decidiu");
 
+  await analyst.getByRole("link", { name: "Voltar" }).click();
   await analyst.getByRole("link", { name: "Mapa vivo" }).click();
-  await expect(analyst.getByRole("img", { name: /Mapa com/ })).toBeVisible();
+  await expect(analyst.getByRole("group", { name: /Mapa com/ })).toBeVisible();
+  await expectAccessible(analyst, "mapa vivo (grupos em órbita)");
+  await analyst.getByRole("button", { name: /, \d+ tickets?$/ }).first().focus();
+  await analyst.keyboard.press("Enter");
+  await expect(analyst.getByRole("button", { name: "Todos os grupos" })).toBeVisible();
+  await expectAccessible(analyst, "mapa vivo (zoom no grupo)");
+  await analyst.getByRole("button", { name: "Todos os grupos" }).click();
   await expectAccessible(analyst, "mapa vivo");
 
   const ops = await signedIn(browser, "Olivia");
+  await ops.getByRole("link", { name: "Filas e regras" }).click();
   await expect(ops.getByRole("form", { name: "Nova fila" })).toBeVisible();
   await expectAccessible(ops, "operação: filas e equipes");
   await ops.getByRole("link", { name: "Regras", exact: true }).click();
   await expect(ops.getByRole("button", { name: "Simular" }).or(ops.getByRole("button", { name: /Criar rascunho/ }))).toBeVisible();
   await expectAccessible(ops, "operação: regras");
+
+  await ops.goto("/#/solucao");
+  await expect(ops.getByRole("heading", { level: 1, name: "Tempo de solução" })).toBeVisible();
+  await expectAccessible(ops, "detalhe do tempo de solução");
+  await ops.goto("/#/time");
+  await expect(ops.getByRole("heading", { level: 1, name: "Desempenho do time" })).toBeVisible();
+  await expectAccessible(ops, "detalhe do desempenho do time");
+  await ops.goto("/#/tickets");
+  await expect(ops.getByRole("heading", { level: 1, name: "Operação dos tickets" })).toBeVisible();
+  await expectAccessible(ops, "detalhe da operação dos tickets");
+  await ops.goto("/#/inicio");
+  await ops.getByRole("table", { name: "Desempenho por analista" }).getByRole("link").first().click();
+  await expect(ops.getByRole("region", { name: "SLA da primeira resposta" })).toBeVisible();
+  await expectAccessible(ops, "detalhe do analista");
 });
 
 /** Aperta Tab até o elemento focado ter o nome acessível pedido; falha se não chegar em `limit` toques. */

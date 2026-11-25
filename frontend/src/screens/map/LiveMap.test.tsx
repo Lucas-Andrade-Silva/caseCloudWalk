@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockApi } from "../../test/mockApi";
 import type { SocketLike } from "./cable";
@@ -88,6 +88,15 @@ describe("mapa vivo", () => {
     expect(groupCounts()).toEqual(["maquininha3", "credito1"]);
   });
 
+  it("mostra a tela de carregamento até o retrato do mapa chegar", async () => {
+    mockApi({ "GET /api/map": () => [200, { total: 1, limit: 500, tickets: [ticket("a", "credito")] }] });
+    render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Abrindo o mapa vivo…");
+    expect(await screen.findByText("1 tickets abertos")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("avisa quem corre risco no grupo", async () => {
     mockApi({
       "GET /api/map": () => [
@@ -125,7 +134,7 @@ describe("mapa vivo", () => {
     expect(within(alert).getByText("Maquininhas não ligam")).toBeInTheDocument();
     expect(within(alert).getByText("2 tickets")).toBeInTheDocument();
     // Os tickets do incidente saem do grupo de origem e formam um grupo próprio no mapa.
-    expect(await screen.findByText("incidente · maquininha")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "incidente · maquininha, 2 tickets" })).toBeInTheDocument();
     expect(groupCounts()).toEqual(["incidente · maquininha2", "credito1"]);
   });
 
@@ -137,5 +146,126 @@ describe("mapa vivo", () => {
     FakeSocket.last!.onclose?.();
 
     expect(await screen.findByText("Sem conexão ao vivo · atualizando a cada 5 s")).toBeInTheDocument();
+  });
+
+  describe("órbitas e zoom (ADR 0012)", () => {
+    const three = () =>
+      mockApi({
+        "GET /api/map": () => [
+          200,
+          { total: 3, limit: 500, tickets: [ticket("a", "credito"), ticket("b", "credito"), ticket("c", "maquininha")] },
+        ],
+      });
+    const group = (name: RegExp) => screen.getByRole("button", { name });
+    const tickets = (container: HTMLElement) => [...container.querySelectorAll("[data-ticket]")].map((node) => node.getAttribute("data-ticket"));
+
+    it("mostra cada grupo como um círculo em órbita, maior quanto mais tickets tem", async () => {
+      three();
+      render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+
+      expect(await screen.findByRole("group", { name: "Mapa com 3 tickets em 2 grupos" })).toBeInTheDocument();
+      const radius = (button: HTMLElement) => Number(button.querySelector(".map-bubble-body")!.getAttribute("r"));
+      expect(radius(group(/credito, 2 tickets/))).toBeGreaterThan(radius(group(/maquininha, 1 ticket/)));
+    });
+
+    it("o círculo cresce quando chegam tickets daquele grupo", async () => {
+      three();
+      render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+      const radius = () => Number(group(/maquininha, \d+ tickets?/).querySelector(".map-bubble-body")!.getAttribute("r"));
+      const before = radius();
+
+      FakeSocket.last!.receive({ type: "welcome" });
+      FakeSocket.last!.receive({ identifier: "{}", message: { type: "ticket.upsert", ticket: ticket("d", "maquininha") } });
+      FakeSocket.last!.receive({ identifier: "{}", message: { type: "ticket.upsert", ticket: ticket("e", "maquininha") } });
+
+      await screen.findByText("5 tickets abertos");
+      expect(radius()).toBeGreaterThan(before);
+    });
+
+    it("clicar no círculo dá zoom e abre os tickets do grupo, e voltar leva aos grupos", async () => {
+      three();
+      const { container } = render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+
+      fireEvent.click(group(/credito, 2 tickets/));
+
+      expect(await screen.findByRole("button", { name: "Todos os grupos" })).toBeInTheDocument();
+      expect(screen.getByText("credito · 2 tickets")).toBeInTheDocument();
+      expect(tickets(container).sort()).toEqual(["a", "b"]);
+      expect(screen.queryByRole("button", { name: /maquininha, 1 ticket/ })).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Todos os grupos" }));
+
+      expect(group(/credito, 2 tickets/)).toBeInTheDocument();
+      expect(tickets(container)).toEqual([]);
+    });
+
+    it("a legenda muda com a tela: grupos na visão geral, estados do ticket no zoom", async () => {
+      three();
+      render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+      const legend = () => within(screen.getByRole("list", { name: "Como ler o mapa" })).getAllByRole("listitem").map((item) => item.textContent);
+
+      expect(legend()).toContain("Grupocresce com os tickets");
+
+      fireEvent.click(group(/credito, 2 tickets/));
+      await screen.findByRole("button", { name: "Todos os grupos" });
+
+      expect(legend()).toContain("Esperando humanoanel laranja");
+      expect(legend()).not.toContain("Grupocresce com os tickets");
+    });
+
+    it("Esc também volta aos grupos", async () => {
+      three();
+      render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+      fireEvent.click(group(/credito, 2 tickets/));
+      await screen.findByRole("button", { name: "Todos os grupos" });
+
+      fireEvent.keyDown(window, { key: "Escape" });
+
+      expect(await screen.findByRole("button", { name: /credito, 2 tickets/ })).toBeInTheDocument();
+    });
+
+    it("volta sozinho aos grupos quando o grupo ampliado esvazia", async () => {
+      three();
+      render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+      fireEvent.click(group(/maquininha, 1 ticket/));
+      await screen.findByRole("button", { name: "Todos os grupos" });
+
+      FakeSocket.last!.receive({ type: "welcome" });
+      FakeSocket.last!.receive({ identifier: "{}", message: { type: "ticket.removed", id: "c" } });
+
+      expect(await screen.findByRole("button", { name: /credito, 2 tickets/ })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Todos os grupos" })).toBeNull();
+    });
+
+    it("no zoom, clicar num ticket abre o atendimento dele para o analista", async () => {
+      three();
+      const { container } = render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+      fireEvent.click(group(/credito, 2 tickets/));
+      await screen.findByRole("button", { name: "Todos os grupos" });
+
+      fireEvent.click(container.querySelector('[data-ticket="b"]')!);
+
+      expect(window.location.hash).toBe("#/fila/b");
+    });
+
+    it("a operação vê os tickets no zoom, mas não abre a fila de um analista", async () => {
+      three();
+      const ops = { id: "u-ops", name: "Olivia", role: "ops" as const, brands: [] };
+      window.location.hash = "#/mapa";
+      const { container } = render(<LiveMap token="tk" me={ops} socket={FakeSocket} />);
+      await screen.findByText("3 tickets abertos");
+      fireEvent.click(group(/credito, 2 tickets/));
+      await screen.findByRole("button", { name: "Todos os grupos" });
+
+      fireEvent.click(container.querySelector('[data-ticket="a"]')!);
+
+      expect(window.location.hash).toBe("#/mapa");
+    });
   });
 });

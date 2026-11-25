@@ -11,7 +11,7 @@ export function OpsWorkspace({ token, route }: { token: string; route: string })
   const onRules = route === "/operacao/regras";
 
   return (
-    <div className="flex h-screen min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-w-0 flex-1 flex-col">
       <nav aria-label="Operação" className="flex gap-1 border-b border-line bg-surface px-6 pt-3">
         {TABS.map((tab) => {
           const active = tab.route === route;

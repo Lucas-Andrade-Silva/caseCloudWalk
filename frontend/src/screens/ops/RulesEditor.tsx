@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "../../lib/api";
 import { BRAND_LABELS } from "../../lib/format";
+import { LoadingScreen } from "../../ui/LoadingScreen";
 import {
   createRuleSet,
   dryRunRuleSet,
@@ -127,7 +128,7 @@ export function RulesEditor({ token }: { token: string }) {
     return () => clearTimeout(timer);
   }, [brand, loadBrand]);
 
-  if (!catalog) return <p className="p-6 text-sm text-faint">{message?.text ?? "Carregando…"}</p>;
+  if (!catalog) return message ? <p className="p-6 text-sm text-faint">{message.text}</p> : <LoadingScreen label="Carregando as regras…" />;
 
   const editable = selected?.status === "draft";
   const brandQueues = queues.filter((queue) => queue.brand === brand);

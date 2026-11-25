@@ -14,6 +14,16 @@ test("um pico vira incidente, aparece no painel e no mapa, e a analista fecha to
   await analyst.getByRole("link", { name: "Mapa vivo" }).click();
   await expect(analyst.getByRole("region", { name: "Incidentes abertos" })).toContainText("Incidente");
 
+  // O incidente é um círculo em órbita; abrir o grupo dá zoom e mostra os tickets dele girando (ADR 0012). Os
+  // círculos não param, então o grupo é aberto pelo teclado (foco + Enter), que não espera o elemento ficar quieto.
+  await analyst.getByRole("button", { name: /^incidente · .*, \d+ tickets$/ }).focus();
+  await analyst.keyboard.press("Enter");
+  await expect(analyst.getByRole("button", { name: "Todos os grupos" })).toBeVisible();
+  await expect.poll(() => analyst.locator("[data-ticket]").count()).toBeGreaterThanOrEqual(5);
+  await analyst.getByRole("button", { name: "Todos os grupos" }).click();
+  await expect(analyst.locator("[data-ticket]")).toHaveCount(0);
+
+  await analyst.getByRole("link", { name: "Voltar" }).click();
   await analyst.getByRole("link", { name: "Fila" }).click();
   const banner = analyst.getByRole("region", { name: "Incidente aberto" });
   await expect(banner).toBeVisible();

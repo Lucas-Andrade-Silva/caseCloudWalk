@@ -4,9 +4,11 @@ import { fetchIncidents, fetchMap, type Me } from "../../lib/api";
 import { BRAND_LABELS } from "../../lib/format";
 import { usePolling } from "../../lib/usePolling";
 import { navigate } from "../../lib/useHashRoute";
+import { LoadingScreen } from "../../ui/LoadingScreen";
 import { createBatcher } from "./batcher";
 import { cableUrl, connectMap, type CableStatus, type SocketFactory } from "./cable";
 import { MapCanvas } from "./MapCanvas";
+import { MapLegend } from "./MapLegend";
 import { applyEvents, capNodes, fromSnapshot, summarize, type MapEvent, type MapState, type MapTicket } from "./model";
 import { assignColors, PALETTE } from "./palette";
 
@@ -16,7 +18,7 @@ const CLOCK_MS = 5_000;
 const NODE_LIMIT = 500;
 const ALL_BRANDS = ["infinitepay", "jim"];
 // Laranja da CloudWalk (token --color-incident): reservado ao Modo Incidente, fora da paleta dos grupos.
-const INCIDENT_COLOR = "#e25813";
+const INCIDENT_COLOR = "#fb923c";
 
 const STATUS_TEXT: Record<CableStatus, string> = {
   connecting: "Conectando…",
@@ -106,13 +108,27 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     setColorKeys(clusterKeys);
     setColors(assignColors(clusters.map((cluster) => cluster.key), colors));
   }
+  // Zoom num grupo (ADR 0012): se o grupo esvaziar, volta aos grupos em vez de ficar numa tela vazia.
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  if (selectedKey && !clusters.some((cluster) => cluster.key === selectedKey)) setSelectedKey(null);
+  useEffect(() => {
+    if (!selectedKey) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedKey(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedKey]);
   const colorFor = (key: string) => (key.startsWith("incidente:") ? INCIDENT_COLOR : (colors.get(key) ?? PALETTE[0]!));
   const { visible, hidden } = useMemo(() => capNodes(tickets, NODE_LIMIT), [tickets]);
   const total = snapshotTotal !== null && snapshotTotal > NODE_LIMIT ? Math.max(snapshotTotal, tickets.length) : tickets.length;
   const atRiskTotal = clusters.reduce((sum, cluster) => sum + cluster.atRisk, 0);
 
+  // Até o retrato chegar (ou falhar), a tela de carregamento: o mapa vazio pareceria "nenhum ticket aberto".
+  if (snapshotTotal === null && !error) return <LoadingScreen label="Abrindo o mapa vivo…" />;
+
   return (
-    <div className="flex h-screen min-w-0 flex-1 gap-4 p-4">
+    <div className="flex h-full min-w-0 flex-1 gap-4 p-4">
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-card">
         <header className="flex min-h-14 items-center gap-4 border-b border-line px-5 py-2.5">
           <h1 className="text-[15px] font-semibold tracking-tight">Mapa vivo</h1>
@@ -153,6 +169,9 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
             clusters={clusters}
             colorFor={colorFor}
             incidentIds={incidentIds}
+            now={now}
+            selectedKey={selectedKey}
+            onSelect={setSelectedKey}
             onOpen={me.role === "analyst" ? (id) => navigate(`/fila/${id}`) : undefined}
           />
         </div>
@@ -176,20 +195,7 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
         )}
         {atRiskTotal > 0 && <p className="mt-3 px-1.5 text-xs text-danger">{atRiskTotal} tickets em risco de prazo</p>}
 
-        <h2 className="mt-8 text-xs font-semibold text-text">Como ler</h2>
-        <ul className="mt-3 space-y-1.5 text-[11px] leading-relaxed text-faint">
-          <li>Cor: o grupo (primeira tag; sem tag, a fila)</li>
-          <li>Tamanho: a prioridade (P1 maior)</li>
-          <li>
-            Anel: <span className="text-warning">esperando humano</span> ou <span className="text-success">com humano</span>; sem anel, com a IA
-          </li>
-          <li>
-            Anel <span className="text-incident-text">laranja tracejado</span>: ticket de um incidente aberto
-          </li>
-          <li>
-            Pulso <span className="text-danger">vermelho</span>: prazo humano perto de vencer, ou agente calado há 20 s
-          </li>
-        </ul>
+        <MapLegend zoomed={selectedKey !== null} />
       </aside>
     </div>
   );

@@ -68,7 +68,7 @@ export function AnalystWorkspace({ token }: { token: string }) {
   const waitingCount = work.data?.waiting_count ?? 0;
 
   return (
-    <div className="flex h-screen min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-w-0 flex-1 flex-col">
       <IncidentBanner token={token} onResolved={() => void work.reload()} />
       <div className="flex min-h-0 min-w-0 flex-1 gap-4 p-4">
         <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl 2xl:w-80 border border-line bg-surface shadow-card">

@@ -82,7 +82,7 @@ describe("painel do analista", () => {
     expect(window.location.hash).toBe("#/fila/t1");
   });
 
-  it("mostra o resumo da IA identificado, com o template de reserva e os fatos que a IA deu", async () => {
+  it("mostra o resumo da IA identificado e os fatos que a IA deu, sem repetir o resumo por template", async () => {
     window.location.hash = "#/fila/t1";
     mockApi({
       "GET /api/work": () => [200, { ...emptyWork, mine: [item({ mode: "human" })] }],
@@ -105,7 +105,8 @@ describe("painel do analista", () => {
     const context = await screen.findByRole("region", { name: "Contexto" });
     expect(within(context).getByText("Cliente quer R$ 12 mil; o agente não pode aprovar valor alto.")).toBeInTheDocument();
     expect(within(context).getByText("Gerado por IA · openai/gpt-oss-120b")).toBeInTheDocument();
-    expect(within(context).getByText("Escalado pelo agente (motivo: credito_alto_valor).")).toBeInTheDocument();
+    expect(within(context).queryByText("Resumo por template")).not.toBeInTheDocument();
+    expect(within(context).queryByText("Escalado pelo agente (motivo: credito_alto_valor).")).not.toBeInTheDocument();
     expect(within(context).getByText("categoria: credito")).toBeInTheDocument();
     expect(within(context).getByText("frustração: alta")).toBeInTheDocument();
   });
