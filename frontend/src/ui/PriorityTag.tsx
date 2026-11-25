@@ -1,7 +1,7 @@
 // Prioridade P1–P4 (ADR 0004) como selo. P1 e P2 ganham cor; P3 e P4 ficam neutras.
 const TONES: Record<string, string> = {
-  p1: "bg-danger/10 text-danger",
-  p2: "bg-warning/10 text-warning",
+  p1: "bg-danger/10 text-danger-ink",
+  p2: "bg-warning/10 text-warning-ink",
   p3: "bg-elevated text-muted",
   p4: "bg-elevated text-faint",
 };

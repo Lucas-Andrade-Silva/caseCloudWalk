@@ -5,6 +5,7 @@ module Broker
   # devolve uma ação para o consumidor executar, e o que precisa publicar vai pelo produtor injetado.
   #
   #   agent.replies --falha--> retry-1 (10 s) --falha--> retry-2 (60 s) --falha--> dlq
+  #   agent.replies --inválida (422)--> dlq, direto: repetir não muda nada (cenário S4)
   #
   # Plataforma fora do ar não gasta tentativa: pausa e repete a mesma mensagem, para uma queda da
   # plataforma não mandar tudo para a DLQ.
@@ -59,7 +60,8 @@ module Broker
       wait = (message.timestamp + stage.delay - now).ceil
       return Action.pause(wait) if wait.positive?
 
-      @forwarder.forward(message.raw_payload)
+      result = @forwarder.forward(message.raw_payload)
+      to_dlq(message, "plataforma recusou a resposta como inválida (422)") if result == :invalid
       Action.ack
     rescue ReplyForwarder::PlatformUnavailable, *NETWORK_ERRORS => error
       @logger.warn("plataforma indisponível (#{error.class}: #{error.message}); repetindo em #{UNAVAILABLE_PAUSE} s")
@@ -70,19 +72,29 @@ module Broker
     end
 
 
+    def to_dlq(message, reason)
+      publish(message, topic: @stages.values.last.next_topic, reason: reason)
+      @logger.warn("resposta inválida enviada para a DLQ: #{reason}")
+    end
+
     def move_on(message, stage, error)
+      attempt = publish(message, topic: stage.next_topic, reason: "#{error.class}: #{error.message}")
+      @logger.warn("resposta enviada para #{stage.next_topic} (tentativa #{attempt}): #{error.message}")
+    end
+
+    def publish(message, topic:, reason:)
       attempt = message.headers.fetch("x-attempt", "0").to_i + 1
       @producer.produce_sync(
-        topic: stage.next_topic,
+        topic: topic,
         key: message.key,
         payload: message.raw_payload,
         headers: message.headers.merge(
           "x-attempt" => attempt.to_s,
-          "x-error" => "#{error.class}: #{error.message}"[0, 500],
+          "x-error" => reason[0, 500],
           "x-original-topic" => message.headers.fetch("x-original-topic", message.topic)
         )
       )
-      @logger.warn("resposta enviada para #{stage.next_topic} (tentativa #{attempt}): #{error.message}")
+      attempt
     end
   end
 end
