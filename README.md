@@ -62,6 +62,9 @@ nada se perdeu:
 ./scripts/demo/resiliencia.ps1 -Cenario kafka
 ```
 
+E o agente mandando respostas quebradas (`./scripts/demo/veneno.ps1`): a plataforma recusa o veneno, o broker
+segue com as outras mensagens e o vigia passa para humano quem ficou sem resposta.
+
 ## Como testar
 
 Um gate por componente. Os testes usam o Postgres e o Kafka do Compose; nenhum chama rede externa nem LLM.
@@ -84,7 +87,8 @@ docker compose run --rm web-test
 
 Com a pilha no ar, os testes ponta a ponta (Playwright, num container) percorrem a interface de verdade: a
 cliente escreve, o agente escala, a analista atende com memória e fecha, e um pico vira incidente e é fechado de
-uma vez. O script limpa o banco de demo antes:
+uma vez. Também passam o axe (WCAG 2.1 AA) em todas as telas e fazem uma jornada só pelo teclado. O script limpa o
+banco de demo antes:
 
 ```powershell
 ./scripts/e2e/run.ps1

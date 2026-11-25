@@ -30,7 +30,8 @@ Tópicos novos: `agent.replies.retry-1` (espera 10 s), `agent.replies.retry-2` (
 | Resultado da plataforma | O que o broker faz |
 |---|---|
 | `2xx` | Confirma |
-| `404`, `409`, `422` | Confirma e registra a recusa (repetir não muda nada) |
+| `404`, `409` | Confirma e registra a recusa (ticket sumiu ou já saiu da IA; repetir não muda nada) |
+| `422` | Resposta inválida (veneno): vai **direto para a DLQ**, sem retentativas, para a operação enxergar (dono, 2026-11-24, cenário S4) |
 | Plataforma fora (rede, `401`, `403`, `429`, `502`, `503`, `504`) | Pausa a partição e tenta a **mesma** mensagem de novo, sem gastar tentativa |
 | Outro erro (`500` etc.) | Manda para o próximo estágio: principal → retry-1 → retry-2 → DLQ |
 

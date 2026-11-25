@@ -61,6 +61,11 @@ criados e resolvidos hoje contra ontem, série de 7 dias, primeira resposta huma
 conhecimento e fórum ficaram de fora, porque não existem. Contraste AA conferido; paletas dos gráficos
 validadas para daltonismo. A identidade (logotipo e nome) da referência não é usada.
 
+**W9. Resposta inválida do agente vai para a DLQ** (dono, 2026-11-24). No cenário S4, a plataforma recusava a
+resposta quebrada com 422 e o broker só registrava um aviso. Agora o 422 vai direto para a DLQ, sem as
+retentativas de 10 s e 60 s, e aparece em `bin/dlq list` com o motivo. O 404 e o 409 (resposta atrasada de um
+ticket que já saiu da IA) seguem encerrando com aviso, para não encher a DLQ de casos normais.
+
 ## Consequências
 
 - Nova entidade `Incident` e nova ação em lote (responder e fechar vários tickets).

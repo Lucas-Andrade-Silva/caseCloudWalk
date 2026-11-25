@@ -5,10 +5,12 @@ module Api
   # Sem login, como um cliente de verdade. Por isso só existe com CHANNEL_SIMULATOR_ENABLED=true; desligado,
   # responde 404 como se a rota não existisse.
   class SimulatorController < ApplicationController
+    include JsonBody
+
     before_action :require_enabled
 
     def create
-      body = parse_json(request.raw_post)
+      body = json_body
       result = Ingestion::ReceiveMessage.call(
         channel: body["channel"],
         provider_message_id: "sim-#{SecureRandom.uuid}",
@@ -51,13 +53,6 @@ module Api
       Ticket.where(customer: customer, channel: params[:channel])
             .order(Arel.sql("CASE WHEN mode = 'closed' THEN 1 ELSE 0 END"), created_at: :desc)
             .first
-    end
-
-    def parse_json(body)
-      parsed = JSON.parse(body.presence || "{}")
-      parsed.is_a?(Hash) ? parsed : {}
-    rescue JSON::ParserError
-      {}
     end
   end
 end

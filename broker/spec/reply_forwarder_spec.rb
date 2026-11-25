@@ -25,11 +25,17 @@ RSpec.describe Broker::ReplyForwarder do
     expect(forwarder(200).forward("{}")).to eq(:delivered)
   end
 
-  it "encerra, com aviso no log, quando a plataforma recusa de forma definitiva" do
-    [ 404, 409, 422 ].each do |status|
+  it "encerra, com aviso no log, quando a plataforma recusa de forma definitiva (ticket sumiu ou já saiu da IA)" do
+    [ 404, 409 ].each do |status|
       expect(forwarder(status).forward("{}")).to eq(:rejected)
     end
-    expect(log.string).to include("404", "409", "422")
+    expect(log.string).to include("404", "409")
+  end
+
+  # Decisão do dono (2026-11-24, cenário S4): resposta que a plataforma recusa como inválida é veneno e vai para a
+  # DLQ, onde a operação a enxerga. Repetir não ajuda, então não passa pelas retentativas.
+  it "marca como inválida a resposta que a plataforma recusa com 422" do
+    expect(forwarder(422).forward("{}")).to eq(:invalid)
   end
 
   it "levanta erro quando a plataforma falha, para o Kafka reentregar" do

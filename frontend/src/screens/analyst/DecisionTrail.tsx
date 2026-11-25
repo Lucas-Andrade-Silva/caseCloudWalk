@@ -140,7 +140,7 @@ function renderStep(step: ExplanationStep, index: number) {
           <p className="flex flex-wrap gap-1.5">
             <span
               className={`rounded px-1.5 py-0.5 font-mono text-[11px] ${
-                step.accepted ? "bg-accent/12 text-accent" : "bg-elevated text-faint line-through"
+                step.accepted ? "bg-accent/12 text-accent-ink" : "bg-elevated text-faint line-through"
               }`}
             >
               {step.category ?? "sem categoria"}
@@ -234,7 +234,7 @@ export function DecisionTrail({ token, ticketId }: { token: string; ticketId: st
         {Object.keys(data.redactions).length > 0 && (
           <p className="mt-2 flex flex-wrap gap-1.5">
             {redactionText(data.redactions).map((text) => (
-              <span key={text} className="rounded bg-accent/12 px-1.5 py-0.5 font-mono text-[11px] text-accent">
+              <span key={text} className="rounded bg-accent/12 px-1.5 py-0.5 font-mono text-[11px] text-accent-ink">
                 {text}
               </span>
             ))}

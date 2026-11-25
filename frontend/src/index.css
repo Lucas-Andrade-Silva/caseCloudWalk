@@ -21,6 +21,10 @@
   --color-warning: #b45309;
   --color-success: #15803d;
   --color-info: #2563eb;
+  /* Texto sobre os fundos tingidos (selos e chips com bg-cor/10, opacidade de 10%): as cores de cima ficam abaixo de 4,5:1 ali. */
+  --color-accent-ink: #166534;
+  --color-warning-ink: #92400e;
+  --color-danger-ink: #991b1b;
   /* Laranja do Modo Incidente: bordas e fundos; o texto do incidente usa incident-text, que passa no AA. */
   --color-incident: #ea580c;
   --color-incident-text: #c2410c;

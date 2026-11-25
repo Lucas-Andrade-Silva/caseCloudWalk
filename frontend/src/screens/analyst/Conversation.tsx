@@ -32,7 +32,7 @@ const BUBBLES: Record<string, string> = {
 
 export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
   const due = dueLabel(ticket.first_response_due_at, ticket.first_human_response_at);
-  const end = useRef<HTMLDivElement>(null);
+  const end = useRef<HTMLLIElement>(null);
   const count = ticket.messages.length;
 
   useEffect(() => {
@@ -75,7 +75,8 @@ export function Conversation({ ticket, onSend, onClose }: ConversationProps) {
             </li>
           );
         })}
-        <div ref={end} />
+        {/* Marcador para rolar até a última mensagem; filho de <ol> precisa ser <li>. */}
+        <li ref={end} aria-hidden className="h-0" />
       </ol>
 
       {ticket.mode === "human" ? (

@@ -2,14 +2,14 @@ module Api
   # Retrato inicial do mapa vivo (ADR 0007): os tickets abertos das marcas que a pessoa enxerga. Depois
   # disso, o navegador acompanha pelo canal MapChannel.
   class MapController < ApplicationController
+    include TokenAuthentication
+
+    authenticate_roles STAFF_ROLES, forbidden: "apenas pessoas da operação"
+
     LIMIT = 500
 
     def show
-      token = request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]
-      user = User.find_by_token(token)
-      return render(status: :unauthorized, json: { error: "token inválido" }) if user.nil?
-      return render(status: :forbidden, json: { error: "apenas pessoas da operação" }) unless %w[analyst ops].include?(user.role)
-
+      user = current_user
       scope = Ticket.open
       scope = scope.where(brand_id: user.brand_ids) if user.analyst?
       tickets = scope.includes(:brand, :queue)
