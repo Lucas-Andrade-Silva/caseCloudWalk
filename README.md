@@ -82,6 +82,14 @@ docker compose run --rm mock-agent-test
 docker compose run --rm web-test
 ```
 
+Com a pilha no ar, os testes ponta a ponta (Playwright, num container) percorrem a interface de verdade: a
+cliente escreve, o agente escala, a analista atende com memória e fecha, e um pico vira incidente e é fechado de
+uma vez. O script limpa o banco de demo antes:
+
+```powershell
+./scripts/e2e/run.ps1
+```
+
 Com a pilha no ar, as fumaças mostram os caminhos principais: `smoke:round_trip`, `smoke:escalation` e
 `smoke:routing` (via `docker compose exec api bundle exec rails <tarefa>`).
 

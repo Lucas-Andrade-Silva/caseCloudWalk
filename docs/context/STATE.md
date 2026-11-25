@@ -41,7 +41,7 @@ Reta final (entrega **2026-11-27**). Tudo o que o ADR 0009 pediu está **commita
   | `mock-agent-test` | 22 |
   | `web-test` | 61 testes, tipos e lint |
 
-  Com o Docker fora, rode `npm run gate` em `frontend/`.
+  Com o Docker fora, rode `npm run gate` em `frontend/`. **Ponta a ponta:** `./scripts/e2e/run.ps1` (Playwright 1.65.0; 2 jornadas, verdes 2 vezes).
 - **Interface:** `http://127.0.0.1:5173` (nunca `localhost`): `#/painel`, `#/fila`, `#/mapa`, `#/operacao`, `#/cliente`.
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`. Grafana em `:3030`,
   Jaeger em `:16686` e Prometheus em `:9090`.
