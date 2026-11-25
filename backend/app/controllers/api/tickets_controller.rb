@@ -34,7 +34,7 @@ module Api
     end
 
     def messages
-      text = parse_json(request.raw_post)["text"].to_s.strip
+      text = json_body["text"].to_s.strip
       return render(status: :unprocessable_content, json: { error: "text é obrigatório" }) if text.empty?
 
       @ticket.with_lock do
@@ -50,7 +50,7 @@ module Api
     end
 
     def close
-      body = parse_json(request.raw_post)
+      body = json_body
       @ticket.with_lock do
         return unless owner!
 

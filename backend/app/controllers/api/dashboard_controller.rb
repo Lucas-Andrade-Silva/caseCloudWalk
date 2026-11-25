@@ -2,7 +2,9 @@ module Api
   # Painel (ADR 0009, W8) e seus detalhes (ADR 0011): números reais da operação. Analista vê as marcas que atende;
   # a operação vê todas.
   class DashboardController < ApplicationController
-    before_action :authenticate
+    include TokenAuthentication
+
+    authenticate_roles STAFF_ROLES, forbidden: "apenas pessoas da operação"
 
     def show
       render json: Dashboard::Metrics.call(brand_ids: scope)
@@ -30,16 +32,8 @@ module Api
 
     private
 
-    def authenticate
-      token = request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]
-      @user = User.find_by_token(token)
-      return render(status: :unauthorized, json: { error: "token inválido" }) if @user.nil?
+    def scope = current_user.analyst? ? current_user.brand_ids : nil
 
-      render(status: :forbidden, json: { error: "apenas pessoas da operação" }) unless %w[analyst ops].include?(@user.role)
-    end
-
-    def scope = @user.analyst? ? @user.brand_ids : nil
-
-    def visible?(agent) = !@user.analyst? || agent.id == @user.id || (agent.brand_ids & @user.brand_ids).any?
+    def visible?(agent) = !current_user.analyst? || agent.id == current_user.id || (agent.brand_ids & current_user.brand_ids).any?
   end
 end

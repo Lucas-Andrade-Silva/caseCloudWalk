@@ -3,7 +3,6 @@ module ApplicationCable
   # `helpdesk-token.<token em base64url>`, nunca na URL, que acaba em logs de servidor e de proxy.
   class Connection < ActionCable::Connection::Base
     PROTOCOL_PREFIX = "helpdesk-token."
-    PEOPLE = %w[analyst ops].freeze
 
     identified_by :current_user
 
@@ -15,7 +14,7 @@ module ApplicationCable
 
     def find_person
       user = User.find_by_token(token_from_protocol)
-      user if user && PEOPLE.include?(user.role)
+      user if user && TokenAuthentication::STAFF_ROLES.include?(user.role)
     end
 
     def token_from_protocol
