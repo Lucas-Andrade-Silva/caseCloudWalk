@@ -3,8 +3,9 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
-  # Make code changes take effect immediately without server restart.
-  config.enable_reloading = true
+  # Make code changes take effect immediately without server restart. O Compose desliga isto na API (RAILS_RELOAD=false):
+  # no disco do Windows montado no contêiner, conferir os arquivos a cada requisição somava ~1 s em toda chamada.
+  config.enable_reloading = ENV.fetch("RAILS_RELOAD", "true") == "true"
 
   # Do not eager load code on boot.
   config.eager_load = false

@@ -25,7 +25,8 @@ quebrado por um `*/` num comentário do CSS, foi corrigido. O `web-test` agora t
 - Decisões: `docs/decisions/0002` (arquitetura e escopo), `0003` (integração com o agente), `0004` (escalação,
   P1–P4, `sidekiq-cron`, agente mudo em ≤ 40 s), `0005` (equipes, regras, auditoria), `0006` (memória), `0007`
   (interface), `0008` (observabilidade e LLM) e `0009` (Modo Incidente, "Por que a IA decidiu", resiliência,
-  fechamento automático, tema claro com Painel, experimento enxuto).
+  fechamento automático, tema claro com Painel, experimento enxuto) e `0010` (home em cards, sem barra lateral,
+  tema escuro; substitui o tema claro do W8) `0011` (detalhe do analista e do tempo de solução) e `0012` (mapa vivo em órbita, com zoom nos grupos).
 - Produto e design: `PRODUCT.md`. Especificações de fatia: `docs/specs/01` a `06`.
 - Pesquisa: piloto (`docs/research/2026-11-16-piloto-de-carga.md`) e experimento oficial
   (`docs/research/2026-11-23-experimento-oficial.md`, rodadas em `docs/research/experimento-2026-11-23/`).
@@ -40,7 +41,7 @@ quebrado por um `*/` num comentário do CSS, foi corrigido. O `web-test` agora t
 - **Gates** (`docker compose run --rm <serviço>`), 2026-11-25 em `refactor/repo-audit`, zero falhas: `test` 253
   exemplos e rubocop limpo; `broker-test` 27; `mock-agent-test` 22; `web-test` 61 testes, tipos, lint e build.
   Com o Docker fora, rode `npm run gate` em `frontend/`. **Ponta a ponta:** `./scripts/e2e/run.ps1` (Playwright 1.65.0 + axe 4.14.0: 2 jornadas, axe WCAG 2.1 AA e teclado; 4 verdes com a LLM ao vivo).
-- **Interface:** `http://127.0.0.1:5173` (nunca `localhost`): `#/painel`, `#/fila`, `#/mapa`, `#/operacao`, `#/cliente`.
+- **Interface:** `http://127.0.0.1:5173` (nunca `localhost`): `#/inicio` (cards), `#/painel`, `#/fila`, `#/mapa`, `#/operacao`, `#/cliente`.
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`. Grafana em `:3030`,
   Jaeger em `:16686` e Prometheus em `:9090`.
 - **Banco de demo:** `docker compose exec api bundle exec rails demo:reset`. Só em desenvolvimento; cria a
@@ -66,9 +67,10 @@ Caminho de uma mensagem (ADR 0003):
   - **Painel** (`Dashboard::Metrics`);
   - experimento (`Experiment::K6Ledger`, `Experiment::Report`).
 - **`broker/`** e **`mock_agent/`** (Ruby puro): webhook ↔ Kafka com retries e DLQ; mock com caos.
-- **`frontend/`** (React 19, Vite 8, Tailwind 4), em tema claro (W8): Painel, fila com conversa e abas
-  "Contexto" e "Por que a IA decidiu", banner de incidente, mapa vivo, editor da operação e chat do cliente com
-  "Simular pico".
+- **`frontend/`** (React 19, Vite 8, Tailwind 4), em tema escuro com home em cards e "Voltar" (ADR 0010): Painel, fila com conversa e abas
+  "Contexto" e "Por que a IA decidiu", banner de incidente, mapa vivo em órbita com zoom no grupo (ADR 0012), editor da operação e chat do cliente com
+  "Simular pico". Clicar num analista abre `#/analista/:id`; os cards Tempo de solução, Desempenho do time e Operação dos
+  tickets abrem `#/solucao`, `#/time` e `#/tickets` (ADR 0011).
 - **Experimento:** `experiment/k6/webhooks.js`, `compose.experiment.yaml` e `scripts/experiment/run.ps1`.
 - **Ainda não existem:** RLS, regras em linguagem natural, estimativa de espera e canais reais.
 
@@ -88,13 +90,12 @@ Invariantes OK nas 9 rodadas; p99 a 10× de 1,18 a 1,25 s (meta de 1 s perdida p
 
 ## Próximos passos
 
-1. PR de `refactor/repo-audit` (depois de `feat/home-em-cards` ou antes, resolvendo o conflito em `index.css`).
-   Pendências do relatório: seção "Possibilidades de evolução" no README e registrar RLS, regras em linguagem
-   natural e estimativa de espera como fora do escopo.
-   Antes do merge: rodar `./scripts/e2e/run.ps1` com o `.env`. Na pilha isolada, sem `.env`, passaram 2 de 4.
+1. Pendências do relatório de auditoria (`docs/research/2026-11-25-auditoria-e-refatoracao.md`): seção
+   "Possibilidades de evolução" no README e registrar RLS, regras em linguagem natural e estimativa de espera como
+   fora do escopo. Rodar `./scripts/e2e/run.ps1` com o `.env` (na pilha isolada, sem `.env`, passaram 2 de 4).
 2. PRs em pilha até a `main`, com revisão independente (o chat autor não aprova o próprio PR).
-3. Dono: gravar o vídeo de reserva do roteiro e ensaiar a demo (`docs/demo/roteiro-resiliencia.md`).
-4. Conferir a tela da operação com dados no tema claro.
+3. Vídeo de reserva: `./scripts/demo/video.ps1` grava a jornada com legendas (2026-11-24). Dono: ensaiar a demo.
+4. Conferir a tela da operação com dados no tema escuro.
 
 ## Pendências do dono
 
@@ -111,6 +112,8 @@ Invariantes OK nas 9 rodadas; p99 a 10× de 1,18 a 1,25 s (meta de 1 s perdida p
   - Contorno: encerrar os processos, renomear as duas pastas e abrir de novo.
   - Nunca "Reset to factory defaults", que apaga os volumes.
 - **Medidas:** latência em desenvolvimento não vale; só a do modo de produção.
+- **API sem recarregar código (desde 2026-11-25):** o recarregamento custava ~1 s por chamada no disco do Windows. Depois de
+  editar o backend: `docker compose restart api`. `RAILS_RELOAD=true` volta ao recarregamento.
 - **Agente:** consumidor único; paralelizar antes de produção.
 - **Métricas RED:** com `WEB_CONCURRENCY > 1`, as do `/metrics` são de um processo só.
 - **Enriquecimento** chega depois de escalações imediatas (não muda a fila). **SLA humano** estourado não avisa ninguém.

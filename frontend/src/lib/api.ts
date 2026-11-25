@@ -229,13 +229,127 @@ export interface DashboardMetrics {
   yesterday: { created: number; closed: number };
   daily: { date: string; created: number; closed: number }[];
   first_reply: {
-    median_seconds: number | null;
+    mean_seconds: number | null;
     answered: number;
     buckets: { key: "up_to_5m" | "5m_to_15m" | "15m_to_1h" | "over_1h" | "waiting"; count: number }[];
   };
   sla: { met: number; missed: number };
   resolution: { ai: number; human: number };
   channels: { channel: string; count: number }[];
+  resolution_time: { median_seconds: number | null; ai_median_seconds: number | null; human_median_seconds: number | null; resolved: number };
+  team: {
+    active: number;
+    total: number;
+    agents: { id: string; name: string; resolved: number; open: number; reply_median_seconds: number | null; sla_percent: number | null }[];
+  };
+  operations: {
+    stale: number;
+    unassigned: number;
+    tickets: { id: string; agent: string | null; agent_id: string | null; priority: string; brand: string; mode: string; subject: string }[];
+  };
 }
 
 export const fetchDashboard = (token: string) => request<DashboardMetrics>(token, "/api/dashboard");
+
+/** Detalhe de um analista (ADR 0011): só números, nunca o texto das conversas dele. */
+export interface AnalystDetailData {
+  generated_at: string;
+  time_zone: string;
+  agent: { id: string; name: string; brands: string[] };
+  open: number;
+  received: number;
+  answered: number;
+  resolved: number;
+  messages_sent: number;
+  first_reply: { mean_seconds: number | null; answered: number };
+  sla: { met: number; missed: number; percent: number | null };
+  resolution_time: { mean_seconds: number | null; median_seconds: number | null; resolved: number };
+  subjects: { category: string | null; count: number }[];
+  brands: { brand: string; count: number }[];
+  daily: { date: string; received: number; resolved: number }[];
+}
+
+export const fetchAnalystDetail = (token: string, id: string) => request<AnalystDetailData>(token, `/api/dashboard/analysts/${id}`);
+
+/** Detalhe do tempo de solução (ADR 0011): da abertura ao fechamento dos tickets fechados nos últimos 7 dias. */
+export interface ResolutionDetailData {
+  generated_at: string;
+  time_zone: string;
+  target_seconds: number;
+  resolved: number;
+  median_seconds: number | null;
+  mean_seconds: number | null;
+  within_target_percent: number | null;
+  by_resolver: Record<"ai" | "human", { count: number; median_seconds: number | null; mean_seconds: number | null }>;
+  buckets: { key: "up_to_15m" | "15m_to_1h" | "1h_to_8h" | "8h_to_24h" | "over_24h"; count: number }[];
+  brands: { brand: string; resolved: number; median_seconds: number | null }[];
+  categories: { category: string | null; resolved: number; median_seconds: number | null }[];
+  slowest: { id: string; brand: string; category: string | null; seconds: number; resolved_by: "ai" | "human"; agent: string | null }[];
+  daily: { date: string; resolved: number; median_seconds: number | null }[];
+}
+
+export const fetchResolutionDetail = (token: string) => request<ResolutionDetailData>(token, "/api/dashboard/resolution");
+
+/** Detalhe do card "Desempenho do time" (ADR 0011): o time todo nos últimos 7 dias, só números. */
+export interface TeamDetailData {
+  generated_at: string;
+  time_zone: string;
+  totals: {
+    received: number;
+    answered: number;
+    resolved: number;
+    open: number;
+    messages_sent: number;
+    first_reply_mean_seconds: number | null;
+    sla_percent: number | null;
+    solution_mean_seconds: number | null;
+  };
+  agents: {
+    id: string;
+    name: string;
+    brands: string[];
+    received: number;
+    answered: number;
+    resolved: number;
+    open: number;
+    first_reply_mean_seconds: number | null;
+    sla_percent: number | null;
+    solution_mean_seconds: number | null;
+    top_subject: string | null;
+  }[];
+  subjects: { category: string | null; count: number }[];
+  daily: { date: string; received: number; resolved: number }[];
+}
+
+export const fetchTeamDetail = (token: string) => request<TeamDetailData>(token, "/api/dashboard/team");
+
+/** Detalhe do card "Operação dos tickets" (ADR 0011): o que pede gente agora e o que está parado. */
+export interface TicketsDetailData {
+  generated_at: string;
+  time_zone: string;
+  counts: {
+    attention: number;
+    unassigned: number;
+    overdue: number;
+    stale: number;
+    by_priority: Record<"p1" | "p2" | "p3" | "p4", number>;
+    by_brand: { brand: string; count: number }[];
+  };
+  tickets: {
+    id: string;
+    brand: string;
+    priority: string;
+    mode: "pending_human" | "human";
+    agent: string | null;
+    agent_id: string | null;
+    category: string | null;
+    subject: string;
+    waiting_seconds: number | null;
+    first_response_due_at: string | null;
+    first_human_response_at: string | null;
+    overdue: boolean;
+  }[];
+  stale_tickets: { id: string; brand: string; priority: string; mode: string; agent: string | null; agent_id: string | null; subject: string; age_seconds: number }[];
+}
+
+export const fetchTicketsDetail = (token: string) => request<TicketsDetailData>(token, "/api/dashboard/tickets");

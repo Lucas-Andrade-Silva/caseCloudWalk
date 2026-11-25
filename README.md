@@ -55,6 +55,13 @@ O roteiro de 8 a 10 minutos está em [`docs/demo/roteiro-resiliencia.md`](docs/d
 4. Modo Incidente;
 5. resiliência ao vivo.
 
+Para gravar um vídeo da jornada inteira, passo a passo e com legendas (cerca de 2 min 20 s, em
+`e2e/videos/helpdesk-demo.webm`), com a pilha no ar:
+
+```powershell
+./scripts/demo/video.ps1
+```
+
 Para provar a resiliência na frente da banca, este script derruba o Kafka no meio de uma rajada e confere que
 nada se perdeu:
 

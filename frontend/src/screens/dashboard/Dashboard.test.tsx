@@ -22,7 +22,7 @@ const metrics: DashboardMetrics = {
     { date: "2026-11-22", created: 9, closed: 4 },
   ],
   first_reply: {
-    median_seconds: 1200,
+    mean_seconds: 1200,
     answered: 3,
     buckets: [
       { key: "up_to_5m", count: 1 },
@@ -39,6 +39,9 @@ const metrics: DashboardMetrics = {
     { channel: "email", count: 4 },
     { channel: "app_chat", count: 4 },
   ],
+  resolution_time: { median_seconds: null, ai_median_seconds: null, human_median_seconds: null, resolved: 0 },
+  team: { active: 0, total: 0, agents: [] },
+  operations: { stale: 0, unassigned: 0, tickets: [] },
 };
 
 describe("Painel", () => {
@@ -59,7 +62,7 @@ describe("Painel", () => {
     expect(tile("Resolvidos hoje")).toHaveTextContent("4");
     expect(tile("Resolvidos hoje")).toHaveTextContent("−4 em relação a ontem");
     expect(tile("Primeira resposta humana")).toHaveTextContent("20 min");
-    expect(tile("Primeira resposta humana")).toHaveTextContent("mediana de 3 respostas em 7 dias");
+    expect(tile("Primeira resposta humana")).toHaveTextContent("tempo médio de 3 respostas em 7 dias");
   });
 
   it("a série diária tem tabela acessível e os cards de canal, resposta e resolução usam os números da API", async () => {
@@ -95,7 +98,7 @@ describe("Painel", () => {
       today: { created: 0, closed: 0 },
       yesterday: { created: 0, closed: 0 },
       daily: metrics.daily.map((day) => ({ ...day, created: 0, closed: 0 })),
-      first_reply: { median_seconds: null, answered: 0, buckets: metrics.first_reply.buckets.map((b) => ({ ...b, count: 0 })) },
+      first_reply: { mean_seconds: null, answered: 0, buckets: metrics.first_reply.buckets.map((b) => ({ ...b, count: 0 })) },
       sla: { met: 0, missed: 0 },
       resolution: { ai: 0, human: 0 },
       channels: [],

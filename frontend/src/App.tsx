@@ -1,3 +1,4 @@
+import { LoadingScreen } from "./ui/LoadingScreen";
 import { useEffect, useState } from "react";
 import { Routes } from "./components/Routes";
 import { Shell } from "./components/Shell";
@@ -57,7 +58,7 @@ function Platform() {
   }, []);
 
   if (state.kind === "checking") {
-    return <div className="min-h-screen bg-bg" aria-busy="true" />;
+    return <LoadingScreen full label="Entrando…" />;
   }
 
   if (state.kind === "signed-out") {

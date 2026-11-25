@@ -47,6 +47,7 @@ test("a cliente escreve, o agente escala, a analista atende com memória e fecha
   await expect(customer.getByText(/Atendimento encerrado/)).toBeVisible();
 
   // O Painel conta o resolvido de hoje.
-  await analyst.getByRole("link", { name: "Painel" }).click();
+  await analyst.getByRole("link", { name: "Voltar" }).click();
+  await analyst.getByRole("link", { name: "Volume de tickets" }).click();
   await expect(analyst.getByRole("group", { name: "Resolvidos hoje" })).toContainText(/Resolvidos hoje\s*[1-9]/);
 });

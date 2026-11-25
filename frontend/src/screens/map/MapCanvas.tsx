@@ -1,27 +1,8 @@
-import {
-  forceCollide,
-  forceManyBody,
-  forceSimulation,
-  forceX,
-  forceY,
-  type ForceX,
-  type ForceY,
-  type Simulation,
-  type SimulationNodeDatum,
-} from "d3-force";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
 import { BRAND_LABELS, CHANNEL_LABELS, dueLabel } from "../../lib/format";
-import { atRisk, nodeRadius, type ClusterSummary, type MapTicket } from "./model";
-
-interface Node extends SimulationNodeDatum {
-  id: string;
-  ticket: MapTicket;
-  /** Quando entrou no mapa (ms do relógio de animação), para a entrada crescer em vez de surgir. */
-  born: number;
-}
-
-const ENTRY_MS = 450;
-const easeOut = (t: number) => 1 - (1 - t) ** 3;
+import { atRisk, type ClusterSummary, type MapTicket } from "./model";
+import { bubbleRadius, layoutClusters, layoutTickets, ORBIT_RADII, position, ticketRadius, ZOOM_CORE } from "./orbit";
 
 const MODE_LABELS: Record<string, string> = {
   ai: "com a IA",
@@ -29,299 +10,303 @@ const MODE_LABELS: Record<string, string> = {
   human: "com humano",
 };
 
-// Mesmos valores dos tokens de index.css (o canvas não lê variáveis CSS a cada quadro).
-const COLORS = { label: "#4b5563", count: "#5f6672", pending: "#d97706", human: "#16a34a", risk: "#dc2626", incident: "#ea580c" };
-const SANS = '"Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif';
+const MODE_RING: Record<string, string> = { pending_human: "var(--color-warning)", human: "var(--color-accent)" };
+const OVERVIEW_BOX = "-440 -330 880 660";
+const LABEL_MAX = 20;
 
-// Desenha o grafo do mapa vivo em canvas, com a física do d3-force (ADR 0007, I3). Os grupos ficam em volta de
-// um círculo; os nós de cada grupo são puxados para o centro dele e se empurram para não se sobrepor.
+const plural = (count: number) => `${count} ${count === 1 ? "ticket" : "tickets"}`;
+const short = (label: string) => (label.length > LABEL_MAX ? `${label.slice(0, LABEL_MAX - 1)}…` : label);
+
+// Cada órbita gira num ritmo e, de uma para a outra, em sentido contrário. O ângulo sai do relógio (e não de uma
+// animação CSS por elemento): assim a órbita e o conteúdo dos círculos, que gira ao contrário para o texto ficar de
+// pé, nunca saem de compasso, mesmo montados em momentos diferentes.
+function spin(ring: number, base: number, step: number) {
+  return { "data-spin": base + ring * step, "data-dir": ring % 2 === 1 ? -1 : 1 };
+}
+
+const place = (orbit: number, angle: number): CSSProperties => {
+  const [x, y] = position(orbit, angle);
+  return { transform: `translate(${x}px, ${y}px)` };
+};
+
+type Hover = { kind: "cluster"; cluster: ClusterSummary; left: number; top: number } | { kind: "ticket"; ticket: MapTicket; left: number; top: number };
+
+// Mapa vivo em órbita (ADR 0012): cada grupo é um círculo que cresce com os tickets e gira em volta do centro;
+// clicar num grupo dá zoom e abre os tickets dele, também girando.
 export function MapCanvas({
   tickets,
   clusters,
   colorFor,
-  incidentIds,
+  incidentCore,
+  now,
+  selectedKey,
+  onSelect,
   onOpen,
 }: {
   tickets: MapTicket[];
   clusters: ClusterSummary[];
   colorFor: (clusterKey: string) => string;
-  incidentIds?: ReadonlySet<string>;
+  /** Incidentes abertos: viram o centro do mapa (não clicável), no lugar do ponto central. */
+  incidentCore?: { incidents: number; count: number } | null;
+  now: Date;
+  selectedKey: string | null;
+  onSelect: (clusterKey: string | null) => void;
   onOpen?: (id: string) => void;
 }) {
-  const colorRef = useRef(colorFor);
-  useEffect(() => {
-    colorRef.current = colorFor;
-  }, [colorFor]);
-  const incidentRef = useRef<ReadonlySet<string>>(new Set());
-  useEffect(() => {
-    incidentRef.current = incidentIds ?? new Set();
-  }, [incidentIds]);
-  const wrapper = useRef<HTMLDivElement>(null);
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const nodes = useRef<Map<string, Node>>(new Map());
-  const simulation = useRef<Simulation<Node, undefined> | null>(null);
-  const centers = useRef<Map<string, { x: number; y: number; label: string; count: number }>>(new Map());
-  const size = useRef({ width: 800, height: 600 });
-  // Alvo de cada nó: o centro do grupo dele (lido na hora, nunca durante a renderização).
-  const targetX = (node: Node) => centers.current.get(node.ticket.cluster.key)?.x ?? size.current.width / 2;
-  const targetY = (node: Node) => centers.current.get(node.ticket.cluster.key)?.y ?? size.current.height / 2;
-  const [hover, setHover] = useState<{ node: Node; left: number; top: number } | null>(null);
+  const [hover, setHover] = useState<Hover | null>(null);
+  const svg = useRef<SVGSVGElement>(null);
+  const selected = selectedKey ? (clusters.find((cluster) => cluster.key === selectedKey) ?? null) : null;
+  const slots = useMemo(() => layoutClusters(clusters), [clusters]);
+  const members = useMemo(
+    () => (selected ? tickets.filter((ticket) => ticket.cluster.key === selected.key) : []),
+    [tickets, selected],
+  );
+  const zoom = useMemo(() => layoutTickets(members), [members]);
+  const byId = useMemo(() => new Map(tickets.map((ticket) => [ticket.id, ticket])), [tickets]);
 
-  // Física: criada uma vez; os nós mantêm a posição entre atualizações (o mapa se move, não pisca).
-  useEffect(() => {
-    const sim = forceSimulation<Node>([])
-      .force("charge", forceManyBody<Node>().strength(-4))
-      .force("collide", forceCollide<Node>((node) => nodeRadius(node.ticket.priority) + 1.5))
-      .force("x", forceX<Node>(targetX).strength(0.14))
-      .force("y", forceY<Node>(targetY).strength(0.14))
-      .alphaDecay(0.025)
-      .stop();
-    simulation.current = sim;
-    return () => {
-      sim.stop();
-    };
-  }, []);
+  const extent = Math.max(zoom.extent, 130);
+  const viewBox = selected ? `${-extent} ${-extent} ${extent * 2} ${extent * 2}` : OVERVIEW_BOX;
 
-  // Tamanho do canvas acompanha o espaço disponível, com nitidez em telas de alta densidade.
+  // Gira as órbitas: cada uma vira o ângulo do relógio; quem tem data-upright gira ao contrário da órbita dele.
+  // Com "reduzir movimento" no sistema, nada gira.
   useEffect(() => {
-    const element = wrapper.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (!entry || !canvas.current) return;
-      const { width, height } = entry.contentRect;
-      size.current = { width, height };
-      const ratio = window.devicePixelRatio || 1;
-      canvas.current.width = Math.round(width * ratio);
-      canvas.current.height = Math.round(height * ratio);
-      layoutCenters.current();
-      simulation.current?.alpha(0.8);
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  // Centros dos grupos em volta de um círculo, na ordem de tamanho; recalculados quando os grupos ou o tamanho
-  // da área mudam.
-  const clustersRef = useRef(clusters);
-  const layoutCenters = useRef(() => {
-    const list = clustersRef.current;
-    const { width, height } = size.current;
-    // Elipse que usa a largura e a altura reais: em telas estreitas, um círculo apertaria os grupos uns contra os outros.
-    const radiusX = width * 0.33;
-    const radiusY = height * 0.33;
-    const next = new Map<string, { x: number; y: number; label: string; count: number }>();
-    list.forEach((cluster, index) => {
-      const angle = list.length === 1 ? 0 : (index / list.length) * Math.PI * 2 - Math.PI / 2;
-      const spread = list.length === 1 ? 0 : 1;
-      next.set(cluster.key, {
-        x: width / 2 + Math.cos(angle) * radiusX * spread,
-        y: height / 2 + Math.sin(angle) * radiusY * spread,
-        label: cluster.label,
-        count: cluster.count,
-      });
-    });
-    centers.current = next;
-    // O d3 guarda o alvo de cada nó quando a força inicializa: sem reler, os nós seguiriam os centros antigos.
-    const sim = simulation.current;
-    if (sim) {
-      (sim.force("x") as ForceX<Node> | undefined)?.x(targetX);
-      (sim.force("y") as ForceY<Node> | undefined)?.y(targetY);
-    }
-  });
-
-  useEffect(() => {
-    clustersRef.current = clusters;
-    layoutCenters.current();
-    simulation.current?.alpha(0.8);
-  }, [clusters]);
-
-  // Entra, muda e sai: reaproveita o nó (e a posição) de quem já estava no mapa.
-  useEffect(() => {
-    const previous = nodes.current;
-    const next = new Map<string, Node>();
-    for (const ticket of tickets) {
-      const existing = previous.get(ticket.id);
-      if (existing) {
-        existing.ticket = ticket;
-        next.set(ticket.id, existing);
-      } else {
-        const center = centers.current.get(ticket.cluster.key);
-        next.set(ticket.id, {
-          id: ticket.id,
-          ticket,
-          born: performance.now(),
-          x: (center?.x ?? size.current.width / 2) + (Math.random() - 0.5) * 40,
-          y: (center?.y ?? size.current.height / 2) + (Math.random() - 0.5) * 40,
-        });
-      }
-    }
-    nodes.current = next;
-    simulation.current?.nodes([...next.values()]).alpha(0.4);
-  }, [tickets]);
-
-  // Laço de desenho: avança a física e redesenha; o pulso de risco anima só se o sistema permitir movimento.
-  useEffect(() => {
-    const context = canvas.current?.getContext("2d");
-    if (!context) return;
-    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const root = svg.current;
+    if (!root || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     let frame = 0;
-
-    const draw = (time: number) => {
-      const sim = simulation.current;
-      const ratio = window.devicePixelRatio || 1;
-      const { width, height } = size.current;
-      if (sim && sim.alpha() > sim.alphaMin()) {
-        sim.tick();
-        // Nenhum nó sai da área visível (o empurra-empurra de grupos grandes os expulsaria pelas bordas).
-        for (const node of nodes.current.values()) {
-          const r = nodeRadius(node.ticket.priority) + 2;
-          node.x = Math.min(Math.max(node.x ?? 0, r), width - r);
-          node.y = Math.min(Math.max(node.y ?? 0, r + 24), height - r);
-        }
+    const tick = (time: number) => {
+      for (const ring of root.querySelectorAll<SVGGElement>("[data-spin]")) {
+        const angle = (((time / 1000 / Number(ring.dataset.spin)) * 360 * Number(ring.dataset.dir)) % 360) || 0;
+        ring.style.transform = `rotate(${angle}deg)`;
+        for (const content of ring.querySelectorAll<SVGGElement>("[data-upright]")) content.style.transform = `rotate(${-angle}deg)`;
       }
-      const now = new Date();
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      context.clearRect(0, 0, width, height);
-
-      // Rótulo acima do nó mais alto do grupo e no meio dos nós de verdade (o grupo se desloca com os empurrões).
-      const extents = new Map<string, { top: number; sumX: number; count: number }>();
-      for (const node of nodes.current.values()) {
-        const key = node.ticket.cluster.key;
-        const extent = extents.get(key) ?? { top: Infinity, sumX: 0, count: 0 };
-        extent.top = Math.min(extent.top, (node.y ?? 0) - nodeRadius(node.ticket.priority));
-        extent.sumX += node.x ?? 0;
-        extent.count++;
-        extents.set(key, extent);
-      }
-      context.textAlign = "center";
-      for (const [key, center] of centers.current) {
-        const extent = extents.get(key);
-        const top = Math.max(extent?.top ?? center.y, 30);
-        context.fillStyle = COLORS.label;
-        context.font = `600 12px ${SANS}`;
-        // O texto inteiro fica dentro da área, mesmo nos grupos da borda.
-        const half = context.measureText(center.label).width / 2 + 4;
-        const x = Math.min(Math.max(extent ? extent.sumX / extent.count : center.x, half), width - half);
-        context.fillText(center.label, x, top - 20);
-        context.fillStyle = COLORS.count;
-        context.font = `11px ${SANS}`;
-        context.fillText(String(center.count), x, top - 7);
-      }
-
-      const pulse = reduceMotion ? 0.6 : 0.5 + 0.5 * Math.sin(time / 300);
-      for (const node of nodes.current.values()) {
-        const { ticket } = node;
-        const x = node.x ?? 0;
-        const y = node.y ?? 0;
-        const age = reduceMotion ? 1 : Math.min((time - node.born) / ENTRY_MS, 1);
-        const r = nodeRadius(ticket.priority) * (age < 1 ? easeOut(Math.max(age, 0)) : 1);
-        if (age < 1) {
-          // Chegada: um anel que se abre e some, para o olho achar o ticket novo.
-          context.beginPath();
-          context.arc(x, y, nodeRadius(ticket.priority) + 14 * easeOut(Math.max(age, 0)), 0, Math.PI * 2);
-          context.strokeStyle = colorRef.current(ticket.cluster.key);
-          context.globalAlpha = 0.6 * (1 - age);
-          context.lineWidth = 1.25;
-          context.stroke();
-          context.globalAlpha = 1;
-        }
-
-        // Modo Incidente: anel laranja tracejado, girando devagar, em volta dos tickets do pico.
-        if (ticket.incident_id && incidentRef.current.has(ticket.incident_id)) {
-          context.beginPath();
-          context.arc(x, y, nodeRadius(ticket.priority) + 4.5, 0, Math.PI * 2);
-          context.setLineDash([3, 3]);
-          context.lineDashOffset = reduceMotion ? 0 : -time / 120;
-          context.strokeStyle = COLORS.incident;
-          context.lineWidth = 1.5;
-          context.stroke();
-          context.setLineDash([]);
-        }
-
-        if (atRisk(ticket, now)) {
-          context.beginPath();
-          context.arc(x, y, r + 3 + pulse * 4, 0, Math.PI * 2);
-          context.strokeStyle = COLORS.risk;
-          context.globalAlpha = 0.25 + 0.5 * (1 - pulse);
-          context.lineWidth = 1.5;
-          context.stroke();
-          context.globalAlpha = 1;
-        }
-
-        context.beginPath();
-        context.arc(x, y, r, 0, Math.PI * 2);
-        context.fillStyle = colorRef.current(ticket.cluster.key);
-        context.globalAlpha = hover?.node.id === node.id ? 1 : 0.85;
-        context.fill();
-        context.globalAlpha = 1;
-
-        if (ticket.mode === "pending_human" || ticket.mode === "human") {
-          context.lineWidth = 1.75;
-          context.strokeStyle = ticket.mode === "human" ? COLORS.human : COLORS.pending;
-          context.stroke();
-        }
-      }
-      frame = requestAnimationFrame(draw);
+      frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(draw);
+    frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [hover]);
+  }, []);
 
-  // Chamado só em eventos do mouse; já devolve a posição da dica, limitada à área do mapa.
-  function nodeAt(clientX: number, clientY: number): { node: Node; left: number; top: number } | null {
-    const rect = canvas.current?.getBoundingClientRect();
-    if (!rect) return null;
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
-    let best: Node | null = null;
-    let bestDistance = Infinity;
-    for (const node of nodes.current.values()) {
-      const distance = Math.hypot((node.x ?? 0) - x, (node.y ?? 0) - y);
-      if (distance <= nodeRadius(node.ticket.priority) + 3 && distance < bestDistance) {
-        best = node;
-        bestDistance = distance;
-      }
-    }
-    return best ? { node: best, left: Math.min(x + 14, size.current.width - 232), top: Math.max(y - 10, 8) } : null;
+  // Um só tratador para o SVG inteiro: descobre pelo alvo se o mouse está num grupo ou num ticket.
+  function pointer(event: MouseEvent<SVGSVGElement>) {
+    const box = event.currentTarget.getBoundingClientRect();
+    const left = Math.min(event.clientX - box.left + 14, box.width - 244);
+    const top = Math.max(event.clientY - box.top - 10, 8);
+    const target = event.target as Element;
+    const ticketId = target.closest("[data-ticket]")?.getAttribute("data-ticket");
+    const clusterKey = target.closest("[data-cluster]")?.getAttribute("data-cluster");
+    return { left, top, ticket: ticketId ? byId.get(ticketId) : undefined, cluster: clusterKey ? clusters.find((item) => item.key === clusterKey) : undefined };
   }
 
-  const hovered = hover?.node.ticket;
-  const due = hovered ? dueLabel(hovered.first_response_due_at, hovered.first_human_response_at) : null;
+  function onMove(event: MouseEvent<SVGSVGElement>) {
+    const { left, top, ticket, cluster } = pointer(event);
+    if (ticket) setHover({ kind: "ticket", ticket, left, top });
+    else if (cluster) setHover({ kind: "cluster", cluster, left, top });
+    else setHover(null);
+  }
+
+  function onClick(event: MouseEvent<SVGSVGElement>) {
+    const { ticket, cluster } = pointer(event);
+    setHover(null);
+    if (ticket && onOpen) onOpen(ticket.id);
+    else if (cluster && !selected) onSelect(cluster.key);
+  }
+
+  function onKey(event: KeyboardEvent<SVGGElement>, key: string) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onSelect(key);
+  }
+
+  const showTip = hover && (hover.kind === "cluster" ? !selected : true);
 
   return (
-    <div
-      ref={wrapper}
-      className="relative h-full w-full overflow-hidden bg-bg bg-[radial-gradient(circle,var(--color-line)_1px,transparent_1px)] bg-size-[24px_24px]"
-    >
-      <canvas
-        ref={canvas}
-        role="img"
+    <div className="relative h-full w-full overflow-hidden bg-bg bg-[radial-gradient(circle,var(--color-line)_1px,transparent_1px)] bg-size-[24px_24px]">
+      <svg
+        ref={svg}
+        role="group"
         aria-label={`Mapa com ${tickets.length} tickets em ${clusters.length} grupos`}
-        className={`h-full w-full ${hover && onOpen ? "cursor-pointer" : ""}`}
-        onMouseMove={(event) => setHover(nodeAt(event.clientX, event.clientY))}
+        viewBox={viewBox}
+        className="size-full"
+        onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
-        onClick={(event) => {
-          const hit = nodeAt(event.clientX, event.clientY);
-          if (hit && onOpen) onOpen(hit.node.id);
-        }}
-      />
-      {hovered && hover && (
+        onClick={onClick}
+      >
+        {selected ? (
+          <g key={selected.key} className="map-zoom-in">
+            {Array.from({ length: zoom.rings }, (_, ring) => (
+              <circle key={ring} r={zoom.slots.find((slot) => slot.ring === ring)!.orbit} fill="none" stroke="var(--color-line)" strokeDasharray="2 6" />
+            ))}
+            {Array.from({ length: zoom.rings }, (_, ring) => (
+              <g key={ring} className="orbit-spin" {...spin(ring, 150, 40)}>
+                {zoom.slots
+                  .filter((slot) => slot.ring === ring)
+                  .map((slot) => {
+                    const ticket = byId.get(slot.id)!;
+                    const radius = ticketRadius(ticket.priority);
+                    return (
+                      <g key={slot.id} data-ticket={slot.id} className={onOpen ? "cursor-pointer" : ""} style={{ ...place(slot.orbit, slot.angle), transition: "transform 0.7s ease" }}>
+                        <g className="ticket-in">
+                          {/* Área de clique maior que o desenho: o ticket é fácil de acertar mesmo girando. */}
+                          <circle r={radius + 10} fill="transparent" />
+                          {atRisk(ticket, now) && <circle r={radius + 3} fill="none" stroke="var(--color-danger)" strokeWidth="1.5" className="risk-ring" />}
+                          <circle
+                            r={radius}
+                            fill={colorFor(ticket.cluster.key)}
+                            fillOpacity={hover?.kind === "ticket" && hover.ticket.id === slot.id ? 1 : 0.88}
+                            stroke={MODE_RING[ticket.mode] ?? "none"}
+                            strokeWidth="3"
+                          />
+                        </g>
+                      </g>
+                    );
+                  })}
+              </g>
+            ))}
+            <circle r={ZOOM_CORE + 8} fill={colorFor(selected.key)} fillOpacity="0.08" className="map-pulse" />
+            <circle r={ZOOM_CORE} fill={colorFor(selected.key)} fillOpacity="0.22" stroke={colorFor(selected.key)} strokeWidth="2" />
+            <text textAnchor="middle" dy=".35em" fontSize="22" fontWeight="700" fill="var(--color-text)">
+              {selected.count}
+            </text>
+          </g>
+        ) : (
+          <g className="map-zoom-out">
+            {ORBIT_RADII.map((radius) => (
+              <circle key={radius} r={radius} fill="none" stroke="var(--color-line-strong)" strokeDasharray="2 7" />
+            ))}
+            {incidentCore ? (
+              <IncidentCore incidents={incidentCore.incidents} count={incidentCore.count} />
+            ) : (
+              <>
+                <circle r="26" fill="var(--color-accent)" opacity="0.14" className="map-pulse" />
+                <circle r="9" fill="var(--color-accent)" />
+              </>
+            )}
+            {clusters.length === 0 && (
+              <text y="60" textAnchor="middle" fontSize="15" fill="var(--color-faint)">
+                Nenhum ticket aberto
+              </text>
+            )}
+            {ORBIT_RADII.map((_, ring) => (
+              <g key={ring} className="orbit-spin" {...spin(ring, 170, 50)}>
+                {slots
+                  .filter((slot) => slot.ring === ring)
+                  .map((slot) => {
+                    const cluster = clusters.find((item) => item.key === slot.key)!;
+                    const color = colorFor(cluster.key);
+                    const radius = bubbleRadius(cluster.count);
+                    return (
+                      <g key={slot.key} style={{ ...place(slot.orbit, slot.angle), transition: "transform 0.7s ease" }}>
+                        <g className="orbit-upright" data-upright>
+                          <g
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${cluster.label}, ${plural(cluster.count)}`}
+                            data-cluster={cluster.key}
+                            className="map-bubble cursor-pointer"
+                            onKeyDown={(event) => onKey(event, cluster.key)}
+                          >
+                            {cluster.atRisk > 0 && <circle r={radius + 4} fill="none" stroke="var(--color-danger)" strokeWidth="2" className="risk-ring" />}
+                            <circle
+                              r={radius}
+                              fill={color}
+                              fillOpacity="0.2"
+                              stroke={color}
+                              strokeWidth="2"
+                              style={{ transition: "r 0.6s ease, fill-opacity 0.2s" }}
+                              className="map-bubble-body"
+                            />
+                          </g>
+                          {/* O texto fica fora do botão: o nome do botão já diz grupo e quantidade (axe: label-content-name-mismatch). */}
+                          <text aria-hidden textAnchor="middle" dy=".35em" fontSize="19" fontWeight="700" fill="var(--color-text)" pointerEvents="none">
+                            {cluster.count}
+                          </text>
+                          <text aria-hidden y={radius + 17} textAnchor="middle" fontSize="13" fontWeight="500" fill="var(--color-muted)" pointerEvents="none">
+                            {short(cluster.label)}
+                          </text>
+                        </g>
+                      </g>
+                    );
+                  })}
+              </g>
+            ))}
+          </g>
+        )}
+      </svg>
+
+      {selected && (
+        <div className="absolute top-3 left-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-sm font-medium text-muted transition-colors hover:bg-elevated hover:text-text"
+          >
+            <ArrowLeft aria-hidden className="size-4" strokeWidth={2} />
+            Todos os grupos
+          </button>
+          <p className="flex items-center gap-2 text-sm font-semibold">
+            <span aria-hidden className="size-2.5 rounded-full" style={{ background: colorFor(selected.key) }} />
+            <span>
+              {selected.label} · {plural(selected.count)}
+            </span>
+          </p>
+        </div>
+      )}
+
+      {showTip && (
         <div
           className="pointer-events-none absolute z-10 w-60 rounded-lg border border-line bg-surface p-3 text-xs shadow-card"
           style={{ left: hover.left, top: hover.top }}
         >
-          <p className="font-medium text-text">
-            {hovered.cluster.label} · <span className="font-mono uppercase">{hovered.priority}</span>
-          </p>
-          <p className="mt-1 text-muted">
-            {BRAND_LABELS[hovered.brand] ?? hovered.brand} · {CHANNEL_LABELS[hovered.channel] ?? hovered.channel} ·{" "}
-            {MODE_LABELS[hovered.mode] ?? hovered.mode}
-          </p>
-          {hovered.queue && <p className="text-[11px] text-faint">fila {hovered.queue}</p>}
-          {hovered.mode !== "ai" && due && <p className="text-[11px] text-faint">{due.text}</p>}
-          {onOpen && <p className="mt-1.5 text-accent">Clique para abrir</p>}
+          {hover.kind === "cluster" ? (
+            <>
+              <p className="font-medium text-text">{hover.cluster.label}</p>
+              <p className="mt-1 text-muted">{plural(hover.cluster.count)}</p>
+              {hover.cluster.atRisk > 0 && <p className="text-[11px] text-danger-ink">{hover.cluster.atRisk} em risco de prazo</p>}
+              <p className="mt-1.5 text-accent">Clique para ver os tickets</p>
+            </>
+          ) : (
+            <TicketTip ticket={hover.ticket} canOpen={Boolean(onOpen)} />
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+// Centro do mapa em Modo Incidente (ADR 0012, O5): só informa, não recebe clique nem foco. Os detalhes ficam no
+// painel "Incidentes abertos".
+function IncidentCore({ incidents, count }: { incidents: number; count: number }) {
+  const name = incidents === 1 ? "Incidente aberto" : `${incidents} incidentes abertos`;
+  return (
+    <g role="img" aria-label={`${name}, ${plural(count)}`} pointerEvents="none">
+      <circle r="46" fill="var(--color-incident)" opacity="0.16" className="map-pulse" />
+      <circle r="54" fill="none" stroke="var(--color-incident)" strokeWidth="1.5" strokeDasharray="4 4" className="dash-spin" />
+      <circle r="46" fill="var(--color-incident)" fillOpacity="0.22" stroke="var(--color-incident)" strokeWidth="2" />
+      <text aria-hidden y="-18" textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="1.5" fill="var(--color-incident-text)">
+        {incidents === 1 ? "INCIDENTE" : `${incidents} INCIDENTES`}
+      </text>
+      <text aria-hidden y="9" textAnchor="middle" fontSize="30" fontWeight="700" fill="var(--color-text)">
+        {count}
+      </text>
+      <text aria-hidden y="25" textAnchor="middle" fontSize="11" fill="var(--color-muted)">
+        {count === 1 ? "ticket" : "tickets"}
+      </text>
+    </g>
+  );
+}
+
+function TicketTip({ ticket, canOpen }: { ticket: MapTicket; canOpen: boolean }) {
+  const due = dueLabel(ticket.first_response_due_at, ticket.first_human_response_at);
+  return (
+    <>
+      <p className="font-medium text-text">
+        {ticket.cluster.label} · <span className="font-mono uppercase">{ticket.priority}</span>
+      </p>
+      <p className="mt-1 text-muted">
+        {BRAND_LABELS[ticket.brand] ?? ticket.brand} · {CHANNEL_LABELS[ticket.channel] ?? ticket.channel} · {MODE_LABELS[ticket.mode] ?? ticket.mode}
+      </p>
+      {ticket.queue && <p className="text-[11px] text-faint">fila {ticket.queue}</p>}
+      {ticket.mode !== "ai" && <p className="text-[11px] text-faint">{due.text}</p>}
+      {canOpen && <p className="mt-1.5 text-accent">Clique para abrir</p>}
+    </>
   );
 }

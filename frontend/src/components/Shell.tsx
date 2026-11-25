@@ -1,26 +1,15 @@
-import { Inbox, LayoutDashboard, LogOut, Radar, TriangleAlert, Workflow, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Bell, LogOut } from "lucide-react";
 import { useCallback, type ReactNode } from "react";
 import { fetchIncidents, type Me, type Role } from "../lib/api";
 import { BRAND_LABELS } from "../lib/format";
 import { useHashRoute } from "../lib/useHashRoute";
 import { usePolling } from "../lib/usePolling";
+import { Avatar } from "../ui/Avatar";
 import { BrandMark } from "../ui/BrandMark";
-
-const NAVIGATION: Record<Role, { label: string; href: string; icon: LucideIcon }[]> = {
-  analyst: [
-    { label: "Painel", href: "#/painel", icon: LayoutDashboard },
-    { label: "Fila", href: "#/fila", icon: Inbox },
-    { label: "Mapa vivo", href: "#/mapa", icon: Radar },
-  ],
-  ops: [
-    { label: "Painel", href: "#/painel", icon: LayoutDashboard },
-    { label: "Filas e regras", href: "#/operacao", icon: Workflow },
-    { label: "Mapa vivo", href: "#/mapa", icon: Radar },
-  ],
-};
 
 const ROLE_LABELS: Record<Role, string> = { analyst: "Analista", ops: "Operação" };
 const INCIDENTS_REFRESH_MS = 10_000;
+export const HOME_ROUTE = "/inicio";
 
 interface ShellProps {
   me: Me;
@@ -29,98 +18,67 @@ interface ShellProps {
   children: ReactNode;
 }
 
-function GroupLabel({ children }: { children: ReactNode }) {
-  return <p className="px-3 pt-5 pb-1.5 text-[11px] font-medium text-faint">{children}</p>;
-}
-
+// Sem barra lateral (ADR 0010, H1): uma barra superior fina. Fora da tela inicial, "Voltar" fica no canto
+// superior esquerdo e leva de volta aos cards.
 export function Shell({ me, token, onSignOut, children }: ShellProps) {
   const route = useHashRoute();
-  const brands = me.brands.map((brand) => BRAND_LABELS[brand] ?? brand).join(" · ");
+  const onHome = route === HOME_ROUTE;
+  const brands = me.role === "ops" ? "Todas as marcas" : me.brands.map((brand) => BRAND_LABELS[brand] ?? brand).join(" · ");
   const loadIncidents = useCallback(() => fetchIncidents(token), [token]);
   const incidents = usePolling(loadIncidents, INCIDENTS_REFRESH_MS).data?.incidents ?? [];
   const incidentHref = me.role === "analyst" ? "#/fila" : "#/mapa";
 
   return (
-    <div className="flex min-h-screen bg-bg text-text">
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface">
-        <div className="flex items-center gap-3 border-b border-line px-4 py-4">
-          <span
-            aria-hidden
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-semibold text-on-accent"
-          >
-            {me.name.slice(0, 1).toUpperCase()}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight">{me.name}</p>
-            <p className="truncate text-xs leading-tight text-faint">
-              {ROLE_LABELS[me.role]}
-              {brands && ` · ${brands}`}
-            </p>
-          </div>
-        </div>
-
-        <nav aria-label="Principal" className="flex-1 overflow-y-auto px-2 pb-4">
-          <GroupLabel>Geral</GroupLabel>
-          <ul className="space-y-0.5">
-            {NAVIGATION[me.role].map((item) => {
-              const active = route === item.href.slice(1) || route.startsWith(`${item.href.slice(1)}/`);
-              const Icon = item.icon;
-              return (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-colors duration-150 ${
-                      active ? "bg-elevated font-semibold text-text" : "text-muted hover:bg-elevated hover:text-text"
-                    }`}
-                  >
-                    <Icon aria-hidden className={`size-4 shrink-0 ${active ? "text-accent" : "text-faint"}`} strokeWidth={1.9} />
-                    {item.label}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-
-          {incidents.length > 0 && (
-            <>
-              <GroupLabel>Incidentes abertos</GroupLabel>
-              <ul aria-label="Incidentes abertos" className="space-y-0.5">
-                {incidents.map((incident) => (
-                  <li key={incident.id}>
-                    <a
-                      href={incidentHref}
-                      className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-elevated hover:text-text"
-                    >
-                      <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-incident" strokeWidth={1.9} />
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium text-text">{incident.title}</span>
-                        <span className="block text-xs text-faint tabular">
-                          {incident.open_tickets} tickets · {BRAND_LABELS[incident.brand] ?? incident.brand}
-                        </span>
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </>
+    <div className="flex h-screen flex-col bg-bg text-text">
+      <header className="shrink-0 border-b border-line bg-bg/80 backdrop-blur">
+        <nav aria-label="Principal" className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-6">
+          {!onHome && (
+            <a
+              href={`#${HOME_ROUTE}`}
+              className="-ml-2 flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted transition-colors hover:bg-elevated hover:text-text"
+            >
+              <ArrowLeft aria-hidden className="size-4" strokeWidth={2} />
+              Voltar
+            </a>
           )}
-        </nav>
+          <a href={`#${HOME_ROUTE}`} aria-label="helpdesk, ir para o início" className="rounded-md px-1 py-1">
+            <BrandMark />
+          </a>
+          <span className="rounded-lg border border-line px-2.5 py-1 text-xs text-muted">
+            {ROLE_LABELS[me.role]}
+            {brands && <span className="text-faint"> · {brands}</span>}
+          </span>
 
-        <div className="flex items-center justify-between border-t border-line px-4 py-3">
-          <BrandMark />
-          <button
-            type="button"
-            onClick={onSignOut}
-            aria-label="Sair"
-            title="Sair"
-            className="flex size-8 items-center justify-center rounded-lg text-faint transition-colors hover:bg-elevated hover:text-text"
-          >
-            <LogOut aria-hidden className="size-4" strokeWidth={1.9} />
-          </button>
-        </div>
-      </aside>
-      <main className="flex min-w-0 flex-1">{children}</main>
+          <div className="ml-auto flex items-center gap-2">
+            <a
+              href={incidentHref}
+              aria-label={incidents.length > 0 ? `${incidents.length} incidentes abertos` : "Nenhum incidente aberto"}
+              className="relative flex size-9 items-center justify-center rounded-lg border border-line text-muted transition-colors hover:bg-elevated hover:text-text"
+            >
+              <Bell aria-hidden className="size-4" strokeWidth={1.9} />
+              {incidents.length > 0 && (
+                <span aria-hidden className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-incident text-[10px] font-semibold text-bg">
+                  {incidents.length}
+                </span>
+              )}
+            </a>
+            <span className="flex items-center gap-2 pl-1">
+              <Avatar name={me.name} className="size-8 rounded-full" />
+              <span className="text-sm font-medium">{me.name}</span>
+            </span>
+            <button
+              type="button"
+              onClick={onSignOut}
+              aria-label="Sair"
+              title="Sair"
+              className="flex size-9 items-center justify-center rounded-lg text-faint transition-colors hover:bg-elevated hover:text-text"
+            >
+              <LogOut aria-hidden className="size-4" strokeWidth={1.9} />
+            </button>
+          </div>
+        </nav>
+      </header>
+      <main className="flex min-h-0 flex-1">{children}</main>
     </div>
   );
 }

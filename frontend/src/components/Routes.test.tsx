@@ -10,13 +10,25 @@ describe("rotas da plataforma", () => {
     vi.unstubAllGlobals();
   });
 
-  it("leva rota desconhecida para a tela inicial do papel", async () => {
-    mockApi({ "GET /api/work": () => [200, { mine: [], waiting: [], waiting_count: 0 }] });
+  it("leva rota desconhecida para a tela inicial em cards", async () => {
+    mockApi({});
     window.location.hash = "#/nada";
 
     render(<Routes me={ana} token="tk" />);
 
-    await vi.waitFor(() => expect(window.location.hash).toBe("#/fila"));
+    await vi.waitFor(() => expect(window.location.hash).toBe("#/inicio"));
+  });
+
+  it.each(["#/analista/u-ana", "#/solucao", "#/time", "#/tickets"])("mantém a rota de detalhe %s", async (hash) => {
+    mockApi({
+      "GET /api/dashboard*": () => [404, { error: "x" }],
+    });
+    window.location.hash = hash;
+
+    render(<Routes me={ana} token="tk" />);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(window.location.hash).toBe(hash);
   });
 
   // Defeito visto no navegador: o polling renderizava as rotas da plataforma com o endereço já em /cliente,

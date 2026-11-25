@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { fieldClass, labelClass } from "../../ui/field";
+import { LoadingScreen } from "../../ui/LoadingScreen";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { BRAND_LABELS } from "../../lib/format";
 import {
@@ -59,7 +60,7 @@ export function QueuesEditor({ token }: { token: string }) {
     }
   }
 
-  if (!data) return <p className="p-6 text-sm text-faint">{error ?? "Carregando…"}</p>;
+  if (!data) return error ? <p className="p-6 text-sm text-faint">{error}</p> : <LoadingScreen label="Carregando as filas…" />;
 
   return (
     <div className="flex-1 space-y-8 overflow-y-auto p-6">

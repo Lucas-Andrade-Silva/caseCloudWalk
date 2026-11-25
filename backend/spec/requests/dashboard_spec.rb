@@ -66,7 +66,7 @@ RSpec.describe "Painel" do
 
     reply = dashboard("Ana")["first_reply"]
 
-    expect(reply["median_seconds"]).to eq(20 * 60)
+    expect(reply["mean_seconds"]).to eq(2860) # média de 3 min, 20 min e 2 h
     expect(reply["buckets"]).to eq([
       { "key" => "up_to_5m", "count" => 1 }, { "key" => "5m_to_15m", "count" => 0 },
       { "key" => "15m_to_1h", "count" => 1 }, { "key" => "over_1h", "count" => 1 },
@@ -93,6 +93,58 @@ RSpec.describe "Painel" do
     end
 
     expect(dashboard("Ana")["open"]["incidents"]).to eq(1)
+  end
+
+  it "mede o tempo de solução, da abertura ao fechamento, separado entre IA e humano" do
+    by_ai = ticket_at("ia", now - 3.hours)
+    close(by_ai, now - 2.hours, code: "ai_resolved")
+    by_human = ticket_at("humano", now - 5.hours)
+    close(by_human, now - 2.hours)
+    by_human2 = ticket_at("humano-2", now - 2.hours)
+    close(by_human2, now - 1.hour)
+
+    resolution_time = dashboard("Ana")["resolution_time"]
+
+    expect(resolution_time).to eq("median_seconds" => 3600, "ai_median_seconds" => 3600,
+                                  "human_median_seconds" => 7200, "resolved" => 3)
+  end
+
+  it "mostra o desempenho de cada analista: resolvidos, resposta e SLA, e quem está atendendo agora" do
+    bia = create_analyst("Bia")
+    ana = User.find_by!(name: "Ana")
+    done = escalate_and_answer(ticket_at("a1", now - 4.hours), escalated_at: now - 3.hours, answered_after: 10.minutes)
+    done.update_columns(assignee_id: ana.id, first_response_due_at: now - 2.hours)
+    close(done, now - 1.hour)
+    working = escalate_and_answer(ticket_at("a2", now - 2.hours), escalated_at: now - 90.minutes, answered_after: 30.minutes)
+    working.update_columns(assignee_id: ana.id, mode: "human", first_response_due_at: now - 80.minutes)
+
+    team = dashboard("Olivia")["team"]
+
+    expect(team["active"]).to eq(1)
+    expect(team["total"]).to eq(2)
+    expect(team["agents"]).to eq([
+      { "id" => ana.id, "name" => "Ana", "resolved" => 1, "open" => 1, "reply_median_seconds" => 1200, "sla_percent" => 50 },
+      { "id" => bia.id, "name" => "Bia", "resolved" => 0, "open" => 0, "reply_median_seconds" => nil, "sla_percent" => nil }
+    ])
+  end
+
+  it "lista a operação dos tickets: parados há mais de 3 dias, sem analista e os que pedem gente" do
+    ana = User.find_by!(name: "Ana")
+    stale = ticket_at("parado", now - 4.days)
+    waiting = escalate_and_answer(ticket_at("fila", now - 1.hour), escalated_at: now - 30.minutes)
+    waiting.update_columns(priority: "p1")
+    taken = escalate_and_answer(ticket_at("com-ana", now - 2.hours), escalated_at: now - 1.hour)
+    taken.update_columns(assignee_id: ana.id, mode: "human", priority: "p2")
+
+    operations = dashboard("Ana")["operations"]
+
+    expect(operations["stale"]).to eq(1)
+    expect(operations["unassigned"]).to eq(1)
+    expect(operations["tickets"].map { |row| [ row["id"], row["agent"], row["agent_id"], row["priority"] ] }).to eq([
+      [ waiting.id, nil, nil, "p1" ], [ taken.id, "Ana", ana.id, "p2" ]
+    ])
+    expect(operations["tickets"].first).to include("subject", "brand")
+    expect(stale.reload.mode).to eq("ai")
   end
 
   it "sem token responde 401" do

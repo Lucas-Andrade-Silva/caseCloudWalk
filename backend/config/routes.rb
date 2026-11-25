@@ -25,6 +25,10 @@ Rails.application.routes.draw do
 
     # Painel com os números da operação (ADR 0009, W8).
     get "dashboard", to: "dashboard#show"
+    get "dashboard/resolution", to: "dashboard#resolution"
+    get "dashboard/team", to: "dashboard#team"
+    get "dashboard/tickets", to: "dashboard#tickets"
+    get "dashboard/analysts/:id", to: "dashboard#analyst"
 
     # Modo Incidente (ADR 0009): incidentes abertos e "responder a todos".
     resources :incidents, only: :index do

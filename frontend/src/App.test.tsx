@@ -24,8 +24,8 @@ describe("entrada na plataforma", () => {
     fetchMock.mockReset();
   });
 
-  it("pede o token, confere quem é e mostra a navegação do analista", async () => {
-    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
+  it("pede o token, confere quem é e abre a tela inicial em cards, sem barra lateral", async () => {
+    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : path === "/api/me" ? respond(200, ana) : respond(404, {})));
     render(<App />);
 
     await userEvent.type(screen.getByLabelText("Token de acesso"), "token-da-ana");
@@ -35,22 +35,36 @@ describe("entrada na plataforma", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/me", {
       headers: { Accept: "application/json", Authorization: "Bearer token-da-ana" },
     });
-    const nav = screen.getByRole("navigation", { name: "Principal" });
-    expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Painel", "Fila", "Mapa vivo"]);
+    expect(screen.getByRole("navigation", { name: "Principal" })).toBeInTheDocument();
+    expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     expect(window.localStorage.getItem("helpdesk.token")).toBe("token-da-ana");
+    expect(await screen.findByRole("region", { name: "Atalhos" })).toBeInTheDocument();
+    expect(window.location.hash).toBe("#/inicio");
+    expect(screen.queryByRole("link", { name: "Voltar" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("link", { name: "Fila" }));
     expect(await screen.findByRole("button", { name: "Pegar o próximo" })).toBeInTheDocument();
-    expect(window.location.hash).toBe("#/fila");
+    expect(screen.getByRole("link", { name: "Voltar" })).toHaveAttribute("href", "#/inicio");
   });
 
-  it("mostra a navegação da operação", async () => {
-    fetchMock.mockImplementation((path: string) => (path.startsWith("/api/ops/") ? respond(200, []) : respond(200, olivia)));
+  it("com sessão guardada, mostra a tela de carregamento enquanto confere o token", async () => {
+    window.localStorage.setItem("helpdesk.token", "token-da-ana");
+    fetchMock.mockImplementation((path: string) => (path === "/api/me" ? respond(200, ana) : respond(404, {})));
+    render(<App />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("Entrando…");
+    expect(await screen.findByText("Ana")).toBeInTheDocument();
+    window.localStorage.removeItem("helpdesk.token");
+  });
+
+  it("leva a operação às filas e regras pelo card", async () => {
+    fetchMock.mockImplementation((path: string) => (path.startsWith("/api/ops/") ? respond(200, []) : path === "/api/me" ? respond(200, olivia) : respond(404, {})));
     render(<App />);
 
     await userEvent.type(screen.getByLabelText("Token de acesso"), "token-da-olivia");
     await userEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
-    const nav = await screen.findByRole("navigation", { name: "Principal" });
-    expect(Array.from(nav.querySelectorAll("a")).map((link) => link.textContent)).toEqual(["Painel", "Filas e regras", "Mapa vivo"]);
+    await userEvent.click(await screen.findByRole("link", { name: "Filas e regras" }));
     expect(await screen.findByRole("form", { name: "Nova fila" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Regras" })).toHaveAttribute("href", "#/operacao/regras");
     expect(window.location.hash).toBe("#/operacao");
@@ -68,7 +82,7 @@ describe("entrada na plataforma", () => {
   });
 
   it("em desenvolvimento, entra com um clique como uma pessoa de teste", async () => {
-    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
+    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : path === "/api/me" ? respond(200, ana) : respond(404, {})));
     render(<App />);
 
     await userEvent.click(screen.getByRole("button", { name: /Ana/ }));
@@ -90,7 +104,8 @@ describe("entrada na plataforma", () => {
 
   it("abre o chat do cliente mesmo com uma sessão de analista aberta no navegador", async () => {
     window.localStorage.setItem("helpdesk.token", "token-da-ana");
-    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
+    window.location.hash = "#/fila";
+    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : path === "/api/me" ? respond(200, ana) : respond(404, {})));
     render(<App />);
     expect(await screen.findByRole("button", { name: "Pegar o próximo" })).toBeInTheDocument();
 
@@ -104,7 +119,7 @@ describe("entrada na plataforma", () => {
 
   it("volta com a sessão guardada e sai limpando tudo", async () => {
     window.localStorage.setItem("helpdesk.token", "token-da-ana");
-    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : respond(200, ana)));
+    fetchMock.mockImplementation((path: string) => (path === "/api/work" ? respond(200, emptyWork) : path === "/api/me" ? respond(200, ana) : respond(404, {})));
     render(<App />);
 
     expect(await screen.findByText("Ana")).toBeInTheDocument();

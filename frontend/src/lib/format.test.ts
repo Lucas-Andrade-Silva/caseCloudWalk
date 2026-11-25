@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dueLabel, resolutionLabel } from "./format";
+import { categoryLabel, dueLabel, resolutionLabel } from "./format";
 
 describe("prazo da primeira resposta", () => {
   const now = new Date("2026-11-16T12:10:00.000Z");
@@ -18,5 +18,14 @@ describe("resolução na memória do cliente", () => {
     expect(resolutionLabel("resolved")).toBe("Resolvido");
     expect(resolutionLabel("ai_resolved")).toBe("Resolvido pela IA");
     expect(resolutionLabel("outro_codigo")).toBe("outro_codigo");
+  });
+});
+
+describe("assunto de um ticket", () => {
+  it("começa com maiúscula e diz quando não há categoria", () => {
+    expect(categoryLabel("maquininha")).toBe("Maquininha");
+    expect(categoryLabel("conta_cadastro")).toBe("Conta cadastro");
+    expect(categoryLabel(null)).toBe("Sem categoria");
+    expect(categoryLabel("")).toBe("Sem categoria");
   });
 });

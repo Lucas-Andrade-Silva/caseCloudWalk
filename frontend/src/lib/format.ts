@@ -38,6 +38,13 @@ export function resolutionLabel(code: string): string {
   return (RESOLUTION_LABELS as Record<string, string>)[code] ?? code;
 }
 
+/** Categoria que a IA deu ao ticket, para mostrar como assunto. */
+export function categoryLabel(category: string | null): string {
+  if (!category) return "Sem categoria";
+  const text = category.replaceAll("_", " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function customerName(customer: { external_id: string; name: string | null }): string {
   return customer.name ?? customer.external_id;
 }

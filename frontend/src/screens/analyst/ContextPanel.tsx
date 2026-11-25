@@ -23,10 +23,6 @@ export function ContextPanel({ ticket }: { ticket: TicketDetail }) {
           <>
             <p className="mt-2.5 text-sm leading-relaxed text-text">{ticket.handoff_brief.llm_summary}</p>
             <p className="mt-2 text-[11px] font-medium text-accent">Gerado por IA · {ticket.handoff_brief.llm_model}</p>
-            <details className="group mt-2">
-              <summary className="cursor-pointer text-[11px] text-faint hover:text-muted">Resumo por template</summary>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted">{ticket.handoff_brief.summary}</p>
-            </details>
           </>
         ) : ticket.handoff_brief ? (
           <p className="mt-2.5 text-sm leading-relaxed text-text">{ticket.handoff_brief.summary}</p>
