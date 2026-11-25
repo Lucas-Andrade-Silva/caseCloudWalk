@@ -2,7 +2,9 @@ module Api
   module Agent
     # API que o agente de IA usa, por meio do broker, para responder num ticket como usuário bot.
     class RepliesController < ApplicationController
-      before_action :authenticate_bot
+      include TokenAuthentication
+
+      authenticate_roles "bot", forbidden: "apenas o usuário bot pode responder como agente"
 
       def create
         payload = parse_json(request.raw_post)
@@ -36,17 +38,6 @@ module Api
           { escalated: true, duplicate: duplicate, message_id: message&.id, seq: message&.seq }
         else
           { message_id: message.id, seq: message.seq, stale: message.stale, duplicate: duplicate }
-        end
-      end
-
-      def authenticate_bot
-        token = request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]
-        user = User.find_by_token(token)
-
-        if user.nil?
-          render status: :unauthorized, json: { error: "token inválido" }
-        elsif !user.bot?
-          render status: :forbidden, json: { error: "apenas o usuário bot pode responder como agente" }
         end
       end
 

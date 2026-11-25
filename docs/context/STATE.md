@@ -1,6 +1,6 @@
 # Estado do projeto
 
-Atualizado em: 2026-11-23
+Atualizado em: 2026-11-25
 
 ## Fase atual
 
@@ -12,6 +12,11 @@ Reta final (entrega **2026-11-27**). Tudo o que o ADR 0009 pediu está **commita
 - fechamento automático e reset de demo;
 - tema claro com Painel;
 - roteiro de resiliência e experimento oficial enxuto.
+
+**Auditoria e refatoração de 2026-11-25** na branch `refactor/repo-audit`, a partir de `7cbe67a`. Relatório em
+`docs/research/2026-11-25-auditoria-e-refatoracao.md`, com a matriz de conformidade do TAPI. A autenticação por
+token virou o concern `TokenAuthentication`, o corpo JSON virou `JsonBody`, e o build de produção, que estava
+quebrado por um `*/` num comentário do CSS, foi corrigido. O `web-test` agora também roda o `vite build`.
 
 
 ## Onde está cada coisa
@@ -32,15 +37,8 @@ Reta final (entrega **2026-11-27**). Tudo o que o ADR 0009 pediu está **commita
   - Se só o código mudou, `docker compose up -d --force-recreate api` aplica as migrações.
   - Recrie `relay`, `sidekiq` e os consumidores quando o código deles mudar.
   - Recrie o `web` quando mudar o `package-lock.json`.
-- **Gates** (`docker compose run --rm <serviço>`), 2026-11-23, zero falhas:
-
-  | Serviço | Resultado |
-  |---|---|
-  | `test` (plataforma) | 248 exemplos, rubocop limpo |
-  | `broker-test` | 25 |
-  | `mock-agent-test` | 22 |
-  | `web-test` | 61 testes, tipos e lint |
-
+- **Gates** (`docker compose run --rm <serviço>`), 2026-11-25 em `refactor/repo-audit`, zero falhas: `test` 253
+  exemplos e rubocop limpo; `broker-test` 27; `mock-agent-test` 22; `web-test` 61 testes, tipos, lint e build.
   Com o Docker fora, rode `npm run gate` em `frontend/`. **Ponta a ponta:** `./scripts/e2e/run.ps1` (Playwright 1.65.0 + axe 4.14.0: 2 jornadas, axe WCAG 2.1 AA e teclado; 4 verdes com a LLM ao vivo).
 - **Interface:** `http://127.0.0.1:5173` (nunca `localhost`): `#/painel`, `#/fila`, `#/mapa`, `#/operacao`, `#/cliente`.
 - **Observabilidade:** `OTEL_TRACES_EXPORTER=otlp docker compose --profile obs up -d`. Grafana em `:3030`,
@@ -85,18 +83,18 @@ Caminho de uma mensagem (ADR 0003):
 
 ## Resultados do experimento (2026-11-23)
 
-- **Invariantes:** OK nas 9 rodadas (S1 rampa até 50×, S2 com o Kafka parado 60 s, S3 com o agente em caos).
-- **10×:** ponta a ponta p99 de 1,18 a 1,25 s, então a meta de 1 s foi perdida por pouco.
-- **Kafka:** o atraso esvaziou em 53 a 59 s depois de o Kafka voltar.
-- **Ruptura:** entre 10× e cerca de 37× nesta máquina.
-- **Agente lento:** de 0,2 a 2 s por mensagem, um consumidor só não acompanha 10×, e o vigia escala cerca de
-  62%.
+Invariantes OK nas 9 rodadas; p99 a 10× de 1,18 a 1,25 s (meta de 1 s perdida por pouco); ruptura entre 10× e
+~37×. Detalhe no README e em `docs/research/2026-11-23-experimento-oficial.md`.
 
 ## Próximos passos
 
-1. PRs em pilha até a `main`, com revisão independente (o chat autor não aprova o próprio PR).
-2. Dono: gravar o vídeo de reserva do roteiro e ensaiar a demo (`docs/demo/roteiro-resiliencia.md`).
-3. Conferir a tela da operação com dados no tema claro.
+1. PR de `refactor/repo-audit` (depois de `feat/home-em-cards` ou antes, resolvendo o conflito em `index.css`).
+   Pendências do relatório: seção "Possibilidades de evolução" no README e registrar RLS, regras em linguagem
+   natural e estimativa de espera como fora do escopo.
+   Antes do merge: rodar `./scripts/e2e/run.ps1` com o `.env`. Na pilha isolada, sem `.env`, passaram 2 de 4.
+2. PRs em pilha até a `main`, com revisão independente (o chat autor não aprova o próprio PR).
+3. Dono: gravar o vídeo de reserva do roteiro e ensaiar a demo (`docs/demo/roteiro-resiliencia.md`).
+4. Conferir a tela da operação com dados no tema claro.
 
 ## Pendências do dono
 
