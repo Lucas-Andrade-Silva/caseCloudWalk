@@ -1,14 +1,16 @@
 import { ArrowRight, Bot, Clock3, Headset, Inbox, Radar, Ticket, Timer, TrendingUp, TriangleAlert, Workflow, type LucideIcon } from "lucide-react";
 import { useCallback, type ReactNode } from "react";
 import { fetchDashboard, fetchIncidents, fetchMap, fetchWork, type DashboardMetrics, type Incident, type Me } from "../../lib/api";
-import { BRAND_LABELS, timeOfDay } from "../../lib/format";
+import { timeOfDay } from "../../lib/format";
 import { usePolling } from "../../lib/usePolling";
 import { LoadingScreen } from "../../ui/LoadingScreen";
 import type { MapTicket } from "../map/model";
 import { curvePoints, peakIndex, smoothPath } from "./curve";
+import { situation, type Level } from "./situation";
 import { SolutionTime, TeamPerformance, TicketOperations } from "./OpsCards";
 
 const REFRESH_MS = 10_000;
+const LEVEL_TONE: Record<Level, string> = { estavel: "text-accent", atencao: "text-warning", critico: "text-danger" };
 const percent = (part: number, total: number) => (total > 0 ? Math.round((part / total) * 100) : 0);
 const weekday = (iso: string) =>
   ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][new Date(`${iso}T12:00:00`).getDay()]!;
@@ -23,7 +25,8 @@ function CardLink({
   children,
 }: {
   label: string;
-  href: string;
+  /** Sem href o card só informa: o título não é link e o card não reage ao mouse. */
+  href?: string;
   icon: LucideIcon;
   className?: string;
   aside?: ReactNode;
@@ -34,15 +37,19 @@ function CardLink({
   return (
     <article
       aria-label={label}
-      className={`group relative flex min-h-0 flex-col rounded-2xl border border-line bg-surface p-5 transition-colors duration-200 hover:border-line-strong hover:bg-elevated/60 ${className}`}
+      className={`home-card group relative flex min-h-0 flex-col rounded-2xl border border-line bg-surface p-5 ${href ? "hover:border-line-strong hover:bg-elevated/60" : ""} ${className}`}
     >
       <span className="flex items-center gap-2.5 text-sm text-muted">
-        <span aria-hidden className="flex size-7 items-center justify-center rounded-lg border border-line text-faint transition-colors group-hover:text-accent">
+        <span aria-hidden className={`flex size-7 items-center justify-center rounded-lg border border-line text-faint transition-colors ${href ? "group-hover:text-accent" : ""}`}>
           <Icon className="size-3.5" strokeWidth={1.6} />
         </span>
-        <a href={href} className="after:absolute after:inset-0 after:z-10 after:rounded-2xl after:content-['']">
-          {label}
-        </a>
+        {href ? (
+          <a href={href} className="after:absolute after:inset-0 after:z-10 after:rounded-2xl after:content-['']">
+            {label}
+          </a>
+        ) : (
+          <span>{label}</span>
+        )}
         {aside && <span className="ml-auto">{aside}</span>}
       </span>
       {children}
@@ -221,6 +228,7 @@ export function Home({ token, me }: { token: string; me: Me }) {
   const dashboard = dashboardPoll.data;
   const incidents: Incident[] = incidentsPoll.data?.incidents ?? [];
   const map = mapPoll.data;
+  const state = situation(map?.tickets ?? [], incidents.length, new Date());
   const loadWork = useCallback(() => fetchWork(token), [token]);
   const work = usePolling(isOps ? null : loadWork, REFRESH_MS);
 
@@ -331,7 +339,6 @@ export function Home({ token, me }: { token: string; me: Me }) {
 
           <CardLink
             label="Modo Incidente"
-            href={isOps ? "#/mapa" : "#/fila"}
             icon={TriangleAlert}
             className={`md:col-span-2 ${incidents.length > 0 ? "border-incident/60" : ""}`}
             aside={
@@ -343,22 +350,27 @@ export function Home({ token, me }: { token: string; me: Me }) {
               )
             }
           >
-            {incidents.length === 0 ? (
-              <p className="mt-4 text-sm text-faint">Nenhum incidente aberto. A plataforma agrupa sozinha picos de tickets parecidos.</p>
-            ) : (
-              <ul aria-label="Incidentes abertos" className="mt-4 grid gap-3 sm:grid-cols-2">
-                {incidents.slice(0, 4).map((incident) => (
-                  <li key={incident.id} className="flex items-center gap-3 rounded-xl bg-elevated px-4 py-3">
-                    <span aria-hidden className="size-2.5 shrink-0 rounded-sm bg-incident" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{incident.title}</span>
-                      <span className="block text-xs text-faint">{BRAND_LABELS[incident.brand] ?? incident.brand}</span>
-                    </span>
-                    <span className="text-2xl font-semibold tabular">{incident.open_tickets}</span>
+            <div className="mt-4 flex flex-1 flex-wrap items-end justify-between gap-x-10 gap-y-5">
+              <div role="group" aria-label="Situação da operação" className="min-w-0">
+                <p className="text-xs text-muted">Situação agora</p>
+                <p id="situacao" className={`mt-1 text-5xl font-semibold tracking-tight ${LEVEL_TONE[state.level]}`}>
+                  {state.word}
+                </p>
+                <p className="mt-2 text-sm text-muted">{state.reason}</p>
+              </div>
+              <ul aria-label="Números da operação" className="flex gap-8">
+                {[
+                  { label: "Incidentes abertos", value: incidents.length, alert: incidents.length > 0 },
+                  { label: "Prazo em risco", value: state.risky, alert: state.risky > 0 },
+                  { label: "Última hora", value: state.lastHour, alert: false },
+                ].map((item) => (
+                  <li key={item.label} className="flex flex-col-reverse">
+                    <span className="text-xs text-muted">{item.label}</span>
+                    <span className={`text-3xl font-semibold tabular ${item.alert ? "text-incident-text" : ""}`}>{item.value}</span>
                   </li>
                 ))}
               </ul>
-            )}
+            </div>
           </CardLink>
 
           {isOps ? (

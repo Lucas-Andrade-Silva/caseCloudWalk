@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TriangleAlert } from "lucide-react";
-import { fetchIncidents, fetchMap, type Me } from "../../lib/api";
+import { fetchIncidents, fetchMap, type Incident, type Me } from "../../lib/api";
 import { BRAND_LABELS } from "../../lib/format";
 import { usePolling } from "../../lib/usePolling";
 import { navigate } from "../../lib/useHashRoute";
 import { LoadingScreen } from "../../ui/LoadingScreen";
+import { durationText } from "../dashboard/Dashboard";
 import { createBatcher } from "./batcher";
 import { cableUrl, connectMap, type CableStatus, type SocketFactory } from "./cable";
+import { IncidentFacts } from "./IncidentFacts";
 import { MapCanvas } from "./MapCanvas";
 import { MapLegend } from "./MapLegend";
-import { applyEvents, capNodes, fromSnapshot, summarize, type MapEvent, type MapState, type MapTicket } from "./model";
+import { applyEvents, capNodes, fromSnapshot, summarize, summarizeIncident, type IncidentSummary, type MapEvent, type MapState, type MapTicket } from "./model";
 import { assignColors, PALETTE } from "./palette";
 
 const BATCH_MS = 250;
@@ -17,8 +19,6 @@ const POLL_MS = 5_000;
 const CLOCK_MS = 5_000;
 const NODE_LIMIT = 500;
 const ALL_BRANDS = ["infinitepay", "jim"];
-// Laranja da CloudWalk (token --color-incident): reservado ao Modo Incidente, fora da paleta dos grupos.
-const INCIDENT_COLOR = "#fb923c";
 
 const STATUS_TEXT: Record<CableStatus, string> = {
   connecting: "Conectando…",
@@ -87,18 +87,18 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     return () => clearInterval(timer);
   }, []);
 
-  // Os tickets de um incidente aberto saem do grupo de origem e formam o grupo do incidente: no mapa, eles se
-  // desprendem e se juntam, e o pico fica visível na hora.
-  const incidentLabels = useMemo(() => new Map(incidents.map((incident) => [incident.id, incident.label])), [incidents]);
-  const tickets = useMemo(
-    () =>
-      [...state.values()].map((ticket) => {
-        const label = ticket.incident_id ? incidentLabels.get(ticket.incident_id) : undefined;
-        return label ? { ...ticket, cluster: { key: `incidente:${ticket.incident_id}`, label: `incidente · ${label}` } } : ticket;
-      }),
-    [state, incidentLabels],
-  );
+  // Os tickets de um incidente aberto saem dos grupos em órbita e viram o centro do mapa (ADR 0012, O5).
+  const all = useMemo(() => [...state.values()], [state]);
+  const tickets = useMemo(() => all.filter((ticket) => !ticket.incident_id || !incidentIds.has(ticket.incident_id)), [all, incidentIds]);
   const clusters = useMemo(() => summarize(tickets, now), [tickets, now]);
+  const incidentStats = useMemo(
+    () =>
+      incidents
+        .map((incident) => ({ incident, stats: summarizeIncident(all, incident.id, now) }))
+        .filter((entry) => entry.stats.count > 0),
+    [incidents, all, now],
+  );
+  const incidentCount = incidentStats.reduce((sum, entry) => sum + entry.stats.count, 0);
 
   // Cores estáveis: só recalcula quando o conjunto de grupos muda (estado derivado de renderizações anteriores).
   const clusterKeys = clusters.map((cluster) => cluster.key).sort().join("|");
@@ -119,10 +119,10 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [selectedKey]);
-  const colorFor = (key: string) => (key.startsWith("incidente:") ? INCIDENT_COLOR : (colors.get(key) ?? PALETTE[0]!));
+  const colorFor = (key: string) => colors.get(key) ?? PALETTE[0]!;
   const { visible, hidden } = useMemo(() => capNodes(tickets, NODE_LIMIT), [tickets]);
-  const total = snapshotTotal !== null && snapshotTotal > NODE_LIMIT ? Math.max(snapshotTotal, tickets.length) : tickets.length;
-  const atRiskTotal = clusters.reduce((sum, cluster) => sum + cluster.atRisk, 0);
+  const total = snapshotTotal !== null && snapshotTotal > NODE_LIMIT ? Math.max(snapshotTotal, all.length) : all.length;
+  const atRiskTotal = clusters.reduce((sum, cluster) => sum + cluster.atRisk, 0) + incidentStats.reduce((sum, entry) => sum + entry.stats.atRisk, 0);
 
   // Até o retrato chegar (ou falhar), a tela de carregamento: o mapa vazio pareceria "nenhum ticket aberto".
   if (snapshotTotal === null && !error) return <LoadingScreen label="Abrindo o mapa vivo…" />;
@@ -142,47 +142,39 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
             {STATUS_TEXT[status]}
           </p>
         </header>
-        {incidents.length > 0 && (
-          <section aria-label="Incidentes abertos" className="border-b border-incident/30 bg-incident/6 px-5 py-2.5">
-            <ul className="space-y-1">
-              {incidents.map((incident) => (
-                <li key={incident.id} className="flex animate-rise items-center gap-3 text-sm">
-                  <TriangleAlert aria-hidden className="size-4 shrink-0 text-incident-text" strokeWidth={2} />
-                  <span className="text-xs font-medium text-incident-text">
-                    Incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
-                  </span>
-                  <span className="min-w-0 truncate font-semibold text-text">{incident.title}</span>
-                  <span className="ml-auto shrink-0 text-xs text-muted tabular">{incident.open_tickets} tickets</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
         {error && (
           <p role="alert" className="px-5 py-2 text-xs text-danger">
             {error}
           </p>
         )}
-        <div className="min-h-0 flex-1">
+        <div className="relative min-h-0 flex-1">
           <MapCanvas
             tickets={visible}
             clusters={clusters}
             colorFor={colorFor}
-            incidentIds={incidentIds}
+            incidentCore={incidentCount > 0 ? { incidents: incidentStats.length, count: incidentCount } : null}
             now={now}
             selectedKey={selectedKey}
             onSelect={setSelectedKey}
             onOpen={me.role === "analyst" ? (id) => navigate(`/fila/${id}`) : undefined}
           />
+          {incidentStats.length > 0 && <IncidentPanel entries={incidentStats} now={now} />}
         </div>
       </div>
 
       <aside className="w-72 shrink-0 overflow-y-auto p-5 rounded-xl border border-line bg-surface shadow-card">
         <h2 className="text-xs font-semibold text-text">Grupos</h2>
-        {clusters.length === 0 ? (
+        {clusters.length === 0 && incidentStats.length === 0 ? (
           <p className="mt-2 text-xs text-faint">Nenhum ticket aberto.</p>
         ) : (
           <ul aria-label="Grupos do mapa" className="mt-3 space-y-0.5">
+            {incidentStats.map(({ incident, stats }) => (
+              <li key={incident.id} className="flex h-7 items-center gap-2.5 rounded-md px-1.5 text-xs hover:bg-elevated">
+                <span aria-hidden className="size-2 shrink-0 rounded-full bg-incident" />
+                <span className="min-w-0 flex-1 truncate text-incident-text">incidente · {incident.label}</span>
+                <span className="w-6 text-right font-medium text-muted tabular">{stats.count}</span>
+              </li>
+            ))}
             {clusters.map((cluster) => (
               <li key={cluster.key} className="flex h-7 items-center gap-2.5 rounded-md px-1.5 text-xs hover:bg-elevated">
                 <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: colorFor(cluster.key) }} />
@@ -198,5 +190,35 @@ export function LiveMap({ token, me, socket }: { token: string; me: Me; socket?:
         <MapLegend zoomed={selectedKey !== null} />
       </aside>
     </div>
+  );
+}
+
+// Detalhes do(s) incidente(s) que estão no centro do mapa. Só informa: nada aqui é clicável (ADR 0012, O5).
+function IncidentPanel({ entries, now }: { entries: { incident: Incident; stats: IncidentSummary }[]; now: Date }) {
+  return (
+    <section
+      aria-label="Incidentes abertos"
+      className="pointer-events-none absolute bottom-3 left-3 max-h-[60%] w-[22rem] space-y-2 overflow-hidden rounded-xl border border-incident/40 bg-surface/95 p-3.5 shadow-card"
+    >
+      {entries.map(({ incident, stats }) => {
+        const openFor = Math.max(0, Math.round((now.getTime() - Date.parse(incident.opened_at)) / 1000));
+        return (
+          <article key={incident.id} className="animate-rise space-y-2.5 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-line [&:not(:first-child)]:pt-2.5">
+            <header className="flex items-center gap-2 text-xs font-medium text-incident-text">
+              <TriangleAlert aria-hidden className="size-4 shrink-0" strokeWidth={2} />
+              <span className="min-w-0 truncate">
+                Incidente · {BRAND_LABELS[incident.brand] ?? incident.brand} · {incident.label}
+              </span>
+            </header>
+            <p className="text-sm font-semibold text-text">{incident.title}</p>
+            <p className="text-[11px] text-muted">
+              aberto há {durationText(openFor)}
+              {stats.oldestAt && ` · o mais antigo espera há ${durationText(Math.max(0, Math.round((now.getTime() - Date.parse(stats.oldestAt)) / 1000)))}`}
+            </p>
+            <IncidentFacts stats={stats} />
+          </article>
+        );
+      })}
+    </section>
   );
 }

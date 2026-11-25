@@ -25,6 +25,16 @@ agente calado há 20 s. Anel laranja tracejado: ticket de incidente. Ticket novo
 nome "grupo, N tickets"), com a geometria em funções puras (`orbit.ts`). O teto de ~500 tickets desenhados
 continua. A rotação é CSS e para com `prefers-reduced-motion`.
 
+**O5. O incidente aberto é o centro do mapa, e não é clicável (pedido do dono).** Os tickets de um incidente
+aberto saem dos grupos em órbita e viram um círculo laranja no centro, com a contagem; várias incidências somam
+e o centro diz "N incidentes". Ao lado, o painel "Incidentes abertos" (também sem clique) traz marca, assunto,
+título, há quanto tempo está aberto, quantos tickets, esperando humano, com humano, com a IA, em risco de prazo,
+urgentes (P1) e há quanto espera o mais antigo. O total do mapa e a lista de grupos continuam contando o incidente.
+Não há zoom nos tickets de um incidente; quem age sobre ele usa o aviso da fila ("Responder a todos"). Na tela
+inicial, o card "Modo Incidente" também não é link e se lê de relance (pedido do dono): a situação em uma palavra,
+uma frase de motivo e três números (incidentes abertos, prazo em risco, entradas da última hora). O detalhe por
+incidente fica no painel do mapa.
+
 ## Consequências
 
 - Some a física (d3-force) do mapa; a dependência continua só se outra tela usar.

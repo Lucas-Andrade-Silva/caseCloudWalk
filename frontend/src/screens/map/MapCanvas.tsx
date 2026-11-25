@@ -37,7 +37,7 @@ export function MapCanvas({
   tickets,
   clusters,
   colorFor,
-  incidentIds,
+  incidentCore,
   now,
   selectedKey,
   onSelect,
@@ -46,7 +46,8 @@ export function MapCanvas({
   tickets: MapTicket[];
   clusters: ClusterSummary[];
   colorFor: (clusterKey: string) => string;
-  incidentIds?: ReadonlySet<string>;
+  /** Incidentes abertos: viram o centro do mapa (não clicável), no lugar do ponto central. */
+  incidentCore?: { incidents: number; count: number } | null;
   now: Date;
   selectedKey: string | null;
   onSelect: (clusterKey: string | null) => void;
@@ -115,7 +116,6 @@ export function MapCanvas({
     onSelect(key);
   }
 
-  const incidentTicket = (ticket: MapTicket) => Boolean(ticket.incident_id && incidentIds?.has(ticket.incident_id));
   const showTip = hover && (hover.kind === "cluster" ? !selected : true);
 
   return (
@@ -148,9 +148,6 @@ export function MapCanvas({
                           {/* Área de clique maior que o desenho: o ticket é fácil de acertar mesmo girando. */}
                           <circle r={radius + 10} fill="transparent" />
                           {atRisk(ticket, now) && <circle r={radius + 3} fill="none" stroke="var(--color-danger)" strokeWidth="1.5" className="risk-ring" />}
-                          {incidentTicket(ticket) && (
-                            <circle r={radius + 4.5} fill="none" stroke="var(--color-incident)" strokeWidth="1.5" strokeDasharray="3 3" className="dash-spin" />
-                          )}
                           <circle
                             r={radius}
                             fill={colorFor(ticket.cluster.key)}
@@ -175,8 +172,14 @@ export function MapCanvas({
             {ORBIT_RADII.map((radius) => (
               <circle key={radius} r={radius} fill="none" stroke="var(--color-line-strong)" strokeDasharray="2 7" />
             ))}
-            <circle r="26" fill="var(--color-accent)" opacity="0.14" className="map-pulse" />
-            <circle r="9" fill="var(--color-accent)" />
+            {incidentCore ? (
+              <IncidentCore incidents={incidentCore.incidents} count={incidentCore.count} />
+            ) : (
+              <>
+                <circle r="26" fill="var(--color-accent)" opacity="0.14" className="map-pulse" />
+                <circle r="9" fill="var(--color-accent)" />
+              </>
+            )}
             {clusters.length === 0 && (
               <text y="60" textAnchor="middle" fontSize="15" fill="var(--color-faint)">
                 Nenhum ticket aberto
@@ -202,9 +205,6 @@ export function MapCanvas({
                             onKeyDown={(event) => onKey(event, cluster.key)}
                           >
                             {cluster.atRisk > 0 && <circle r={radius + 4} fill="none" stroke="var(--color-danger)" strokeWidth="2" className="risk-ring" />}
-                            {cluster.key.startsWith("incidente:") && (
-                              <circle r={radius + 8} fill="none" stroke="var(--color-incident)" strokeWidth="1.5" strokeDasharray="4 4" className="dash-spin" />
-                            )}
                             <circle
                               r={radius}
                               fill={color}
@@ -269,6 +269,28 @@ export function MapCanvas({
         </div>
       )}
     </div>
+  );
+}
+
+// Centro do mapa em Modo Incidente (ADR 0012, O5): só informa, não recebe clique nem foco. Os detalhes ficam no
+// painel "Incidentes abertos".
+function IncidentCore({ incidents, count }: { incidents: number; count: number }) {
+  const name = incidents === 1 ? "Incidente aberto" : `${incidents} incidentes abertos`;
+  return (
+    <g role="img" aria-label={`${name}, ${plural(count)}`} pointerEvents="none">
+      <circle r="46" fill="var(--color-incident)" opacity="0.16" className="map-pulse" />
+      <circle r="54" fill="none" stroke="var(--color-incident)" strokeWidth="1.5" strokeDasharray="4 4" className="dash-spin" />
+      <circle r="46" fill="var(--color-incident)" fillOpacity="0.22" stroke="var(--color-incident)" strokeWidth="2" />
+      <text aria-hidden y="-18" textAnchor="middle" fontSize="10" fontWeight="700" letterSpacing="1.5" fill="var(--color-incident-text)">
+        {incidents === 1 ? "INCIDENTE" : `${incidents} INCIDENTES`}
+      </text>
+      <text aria-hidden y="9" textAnchor="middle" fontSize="30" fontWeight="700" fill="var(--color-text)">
+        {count}
+      </text>
+      <text aria-hidden y="25" textAnchor="middle" fontSize="11" fill="var(--color-muted)">
+        {count === 1 ? "ticket" : "tickets"}
+      </text>
+    </g>
   );
 }
 

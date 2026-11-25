@@ -113,29 +113,86 @@ describe("mapa vivo", () => {
     expect(await screen.findByText("1 em risco")).toBeInTheDocument();
   });
 
-  it("destaca o incidente aberto: aviso no topo e os tickets dele contados", async () => {
+  it("põe o incidente aberto no centro do mapa, sem ser clicável, com os detalhes dele", async () => {
+    mockApi({
+      "GET /api/map": () => [
+        200,
+        {
+          total: 4,
+          limit: 500,
+          tickets: [
+            ticket("a", "maquininha", { incident_id: "i1", mode: "pending_human", priority: "p1", first_response_due_at: "2000-01-01T00:00:00.000Z" }),
+            ticket("b", "maquininha", { incident_id: "i1", mode: "human" }),
+            ticket("c", "maquininha", { incident_id: "i1" }),
+            ticket("d", "credito"),
+          ],
+        },
+      ],
+      "GET /api/incidents": () => [
+        200,
+        {
+          incidents: [
+            { id: "i1", label: "maquininha", brand: "infinitepay", title: "Maquininhas não ligam", open_tickets: 3, opened_at: new Date(Date.now() - 12 * 60_000).toISOString() },
+          ],
+        },
+      ],
+    });
+    render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
+
+    // Centro: figura não interativa com a contagem do incidente.
+    const core = await screen.findByRole("img", { name: "Incidente aberto, 3 tickets" });
+    expect(core).toBeInTheDocument();
+    expect(within(core).queryByRole("button")).toBeNull();
+    // Os tickets do incidente não formam um círculo em órbita: sobra só o grupo normal.
+    expect(screen.queryByRole("button", { name: /incidente/i })).toBeNull();
+    expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label"))).toEqual(["credito, 1 ticket"]);
+
+    // Detalhes: o que é, há quanto tempo, quantos tickets e em que situação.
+    const details = screen.getByRole("region", { name: "Incidentes abertos" });
+    expect(within(details).getByText("Maquininhas não ligam")).toBeInTheDocument();
+    expect(within(details).getByText(/InfinitePay · maquininha/)).toBeInTheDocument();
+    expect(within(details).getByText(/aberto há 12 min/)).toBeInTheDocument();
+    const stat = (name: string) => within(details).getByRole("group", { name });
+    expect(stat("Tickets abertos")).toHaveTextContent("3");
+    expect(stat("Esperando humano")).toHaveTextContent("1");
+    expect(stat("Com humano")).toHaveTextContent("1");
+    expect(stat("Com a IA")).toHaveTextContent("1");
+    expect(stat("Em risco de prazo")).toHaveTextContent("1");
+    expect(stat("Urgentes")).toHaveTextContent("1");
+    expect(within(details).queryByRole("button")).toBeNull();
+    expect(within(details).queryByRole("link")).toBeNull();
+
+    // O total do mapa continua contando todos; a lista de grupos traz o incidente à parte.
+    expect(screen.getByText("4 tickets abertos")).toBeInTheDocument();
+    expect(groupCounts()).toEqual(["incidente · maquininha3", "credito1"]);
+  });
+
+  it("com vários incidentes, o centro soma e a lista traz um bloco por incidente", async () => {
     mockApi({
       "GET /api/map": () => [
         200,
         {
           total: 3,
           limit: 500,
-          tickets: [ticket("a", "maquininha", { incident_id: "i1" }), ticket("b", "maquininha", { incident_id: "i1" }), ticket("c", "credito")],
+          tickets: [ticket("a", "x", { incident_id: "i1" }), ticket("b", "y", { incident_id: "i2" }), ticket("c", "y", { incident_id: "i2" })],
         },
       ],
       "GET /api/incidents": () => [
         200,
-        { incidents: [{ id: "i1", label: "maquininha", brand: "infinitepay", title: "Maquininhas não ligam", open_tickets: 2 }] },
+        {
+          incidents: [
+            { id: "i1", label: "pix", brand: "infinitepay", title: "Pix fora do ar", open_tickets: 1, opened_at: new Date().toISOString() },
+            { id: "i2", label: "cartao", brand: "jim", title: "Cartão recusado", open_tickets: 2, opened_at: new Date().toISOString() },
+          ],
+        },
       ],
     });
     render(<LiveMap token="tk" me={ana} socket={FakeSocket} />);
 
-    const alert = await screen.findByRole("region", { name: "Incidentes abertos" });
-    expect(within(alert).getByText("Maquininhas não ligam")).toBeInTheDocument();
-    expect(within(alert).getByText("2 tickets")).toBeInTheDocument();
-    // Os tickets do incidente saem do grupo de origem e formam um grupo próprio no mapa.
-    expect(await screen.findByRole("button", { name: "incidente · maquininha, 2 tickets" })).toBeInTheDocument();
-    expect(groupCounts()).toEqual(["incidente · maquininha2", "credito1"]);
+    expect(await screen.findByRole("img", { name: "2 incidentes abertos, 3 tickets" })).toBeInTheDocument();
+    const details = screen.getByRole("region", { name: "Incidentes abertos" });
+    expect(within(details).getByText("Pix fora do ar")).toBeInTheDocument();
+    expect(within(details).getByText("Cartão recusado")).toBeInTheDocument();
   });
 
   it("sem conexão, avisa e segue atualizando pelo retrato", async () => {

@@ -232,3 +232,24 @@ time,
     opacity: 0;
   }
 }
+
+/* Home: o card sob o mouse cresce um pouco e afasta levemente os vizinhos. */
+.home-card {
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 200ms,
+    border-color 200ms;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .home-card:hover {
+    transform: scale(1.025);
+    z-index: 1;
+  }
+  .home-card:has(~ .home-card:hover) {
+    transform: translateX(-6px);
+  }
+  .home-card:hover ~ .home-card {
+    transform: translateX(6px);
+  }
+}

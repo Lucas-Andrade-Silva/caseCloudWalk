@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyEvents, atRisk, capNodes, fromSnapshot, nodeRadius, summarize, type MapTicket } from "./model";
+import { applyEvents, atRisk, capNodes, fromSnapshot, nodeRadius, summarize, summarizeIncident, type MapTicket } from "./model";
 
 const now = new Date("2026-11-17T12:00:00.000Z");
 
@@ -72,5 +72,25 @@ describe("modelo do mapa vivo", () => {
 
     expect(visible.map((t) => t.id)).toEqual(["p1", "p2"]);
     expect(hidden).toBe(1);
+  });
+  it("resume um incidente: contagem por situação, risco, urgentes e o mais antigo", () => {
+    const tickets = [
+      ticket({ id: "a", incident_id: "i1", mode: "pending_human", priority: "p1", created_at: "2026-11-17T11:40:00.000Z", first_response_due_at: "2026-11-17T12:05:00.000Z" }),
+      ticket({ id: "b", incident_id: "i1", mode: "human", created_at: "2026-11-17T11:50:00.000Z" }),
+      ticket({ id: "c", incident_id: "i1", mode: "ai" }),
+      ticket({ id: "d", incident_id: "outro", mode: "ai" }),
+      ticket({ id: "e" }),
+    ];
+
+    expect(summarizeIncident(tickets, "i1", now)).toEqual({
+      count: 3,
+      pendingHuman: 1,
+      human: 1,
+      ai: 1,
+      urgent: 1,
+      atRisk: 1,
+      oldestAt: "2026-11-17T11:40:00.000Z",
+    });
+    expect(summarizeIncident(tickets, "nenhum", now)).toEqual({ count: 0, pendingHuman: 0, human: 0, ai: 0, urgent: 0, atRisk: 0, oldestAt: null });
   });
 });

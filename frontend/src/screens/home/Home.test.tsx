@@ -75,7 +75,8 @@ function api(extra: Record<string, () => [number, unknown]> = {}) {
 const cardHrefs = () =>
   within(screen.getByRole("region", { name: "Atalhos" }))
     .getAllByRole("article")
-    .map((card) => card.querySelector("a")!)
+    .map((card) => card.querySelector("a"))
+    .filter((link) => link !== null)
     .map((link) => [link.textContent, link.getAttribute("href")]);
 
 describe("tela inicial em cards", () => {
@@ -94,7 +95,6 @@ describe("tela inicial em cards", () => {
       ["SLA da primeira resposta", "#/painel"],
       ["Mapa vivo", "#/mapa"],
       ["Tempo de solução", "#/solucao"],
-      ["Modo Incidente", "#/fila"],
       ["Fila", "#/fila"],
       ["Desempenho do time", "#/time"],
       ["Operação dos tickets", "#/tickets"],
@@ -109,7 +109,29 @@ describe("tela inicial em cards", () => {
     const labels = cardHrefs().map(([label]) => label);
     expect(labels).toContain("Filas e regras");
     expect(labels).not.toContain("Fila");
-    expect(cardHrefs()).toContainEqual(["Modo Incidente", "#/mapa"]);
+  });
+
+  it("o Modo Incidente se lê de relance: sem link, a situação em uma palavra e três números", async () => {
+    const tickets = [
+      { id: "a", incident_id: "i1", mode: "pending_human", priority: "p1", created_at: "2026-11-22T17:51:00.000Z", first_response_due_at: "2000-01-01T00:00:00.000Z" },
+      { id: "b", incident_id: "i1", mode: "human", priority: "p3", created_at: "2026-11-22T17:55:00.000Z", first_response_due_at: null },
+      { id: "c", incident_id: "i1", mode: "ai", priority: "p3", created_at: "2026-11-22T17:56:00.000Z", first_response_due_at: null },
+      { id: "d", incident_id: null, mode: "ai", priority: "p3", created_at: "2026-11-22T17:56:00.000Z", first_response_due_at: null },
+    ];
+    api({
+      "GET /api/map": () => [200, { total: 4, limit: 500, tickets: tickets.map((t) => ({ brand: "infinitepay", channel: "whatsapp", queue: null, tags: [], cluster: { key: "x", label: "x" }, assignee_id: null, escalated_at: null, first_human_response_at: null, awaiting_agent_since: null, ...t })) }],
+    });
+    render(<Home token="tk" me={olivia} />);
+
+    const card = await screen.findByRole("article", { name: "Modo Incidente" });
+    expect(within(card).queryByRole("link")).toBeNull();
+    expect(within(card).getByRole("group", { name: "Situação da operação" })).toHaveTextContent("Crítico");
+    const numbers = within(card).getByRole("list", { name: "Números da operação" });
+    expect(numbers).toHaveTextContent(/Incidentes abertos\s*1/);
+    expect(numbers).toHaveTextContent(/Prazo em risco\s*1/);
+    expect(numbers).toHaveTextContent(/Última hora/);
+    expect(within(card).queryByText("Pix fora do ar")).toBeNull();
+    expect(within(card).queryByText("Por que tantos tickets")).toBeNull();
   });
 
   it("marca o pico da curva de volume e mostra os números reais", async () => {
@@ -121,7 +143,6 @@ describe("tela inicial em cards", () => {
     expect(within(volume).getAllByRole("row")).toHaveLength(8);
     expect(screen.getByRole("article", { name: "Resolvidos pela IA" })).toHaveTextContent("75%");
     expect(screen.getByRole("article", { name: "SLA da primeira resposta" })).toHaveTextContent("75%");
-    expect(screen.getByRole("list", { name: "Incidentes abertos" })).toHaveTextContent("Pix fora do ar");
     expect(screen.getByRole("article", { name: "Fila" })).toHaveTextContent("4");
   });
 

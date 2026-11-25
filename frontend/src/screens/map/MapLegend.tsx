@@ -24,10 +24,10 @@ const OVERVIEW: { title: string; detail: string; swatch: ReactNode }[] = [
   { title: "Grupo", detail: "cresce com os tickets", swatch: <Group /> },
   {
     title: "Incidente",
-    detail: "anel laranja tracejado",
+    detail: "círculo laranja no centro",
     swatch: (
       <>
-        <Group />
+        <circle r="8" fill={INCIDENT} fillOpacity="0.25" stroke={INCIDENT} strokeWidth="1.5" />
         <circle r="12" fill="none" stroke={INCIDENT} strokeWidth="1.5" strokeDasharray="3 3" />
       </>
     ),
@@ -59,16 +59,6 @@ const ZOOMED: { title: string; detail: string; swatch: ReactNode }[] = [
   { title: "Esperando humano", detail: "anel laranja", swatch: <><Dot r={6} /><circle r="6" fill="none" stroke={ORANGE} strokeWidth="2" /></> },
   { title: "Com humano", detail: "anel verde", swatch: <><Dot r={6} /><circle r="6" fill="none" stroke={GREEN} strokeWidth="2" /></> },
   { title: "Com a IA", detail: "sem anel", swatch: <Dot r={6} /> },
-  {
-    title: "Incidente",
-    detail: "anel laranja tracejado",
-    swatch: (
-      <>
-        <Dot r={5} />
-        <circle r="10" fill="none" stroke={INCIDENT} strokeWidth="1.5" strokeDasharray="3 3" />
-      </>
-    ),
-  },
   {
     title: "Prazo em risco",
     detail: "anel vermelho pulsando",

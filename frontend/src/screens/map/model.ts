@@ -76,6 +76,32 @@ export function summarize(tickets: Iterable<MapTicket>, now: Date): ClusterSumma
   return [...byKey.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
+export interface IncidentSummary {
+  count: number;
+  pendingHuman: number;
+  human: number;
+  ai: number;
+  urgent: number;
+  atRisk: number;
+  oldestAt: string | null;
+}
+
+/** Retrato de um incidente (ADR 0012, O5): os tickets abertos dele, por situação, mais o risco e o mais antigo. */
+export function summarizeIncident(tickets: Iterable<MapTicket>, incidentId: string, now: Date): IncidentSummary {
+  const summary: IncidentSummary = { count: 0, pendingHuman: 0, human: 0, ai: 0, urgent: 0, atRisk: 0, oldestAt: null };
+  for (const ticket of tickets) {
+    if (ticket.incident_id !== incidentId) continue;
+    summary.count++;
+    if (ticket.mode === "pending_human") summary.pendingHuman++;
+    else if (ticket.mode === "human") summary.human++;
+    else if (ticket.mode === "ai") summary.ai++;
+    if (ticket.priority === "p1") summary.urgent++;
+    if (atRisk(ticket, now)) summary.atRisk++;
+    if (!summary.oldestAt || ticket.created_at < summary.oldestAt) summary.oldestAt = ticket.created_at;
+  }
+  return summary;
+}
+
 /** Teto de nós desenhados (~500): os de prioridade mais alta ficam; o resto vira a contagem "+N". */
 export function capNodes(tickets: MapTicket[], limit: number): { visible: MapTicket[]; hidden: number } {
   const sorted = [...tickets].sort((a, b) => a.priority.localeCompare(b.priority) || b.created_at.localeCompare(a.created_at));

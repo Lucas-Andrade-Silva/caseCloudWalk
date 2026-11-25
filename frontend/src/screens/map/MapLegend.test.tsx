@@ -10,13 +10,13 @@ describe("legenda do mapa vivo", () => {
 
     expect(items().map((item) => item.textContent)).toEqual([
       "Grupocresce com os tickets",
-      "Incidenteanel laranja tracejado",
+      "Incidentecírculo laranja no centro",
       "Prazo em riscoanel vermelho pulsando",
     ]);
     expect(screen.getByText("Clique num círculo para ampliar.")).toBeInTheDocument();
   });
 
-  it("dentro de um grupo, explica o tamanho, o estado de cada ticket, o incidente e o prazo", () => {
+  it("dentro de um grupo, explica o tamanho, o estado de cada ticket e o prazo", () => {
     render(<MapLegend zoomed />);
 
     expect(items().map((item) => item.textContent)).toEqual([
@@ -24,7 +24,6 @@ describe("legenda do mapa vivo", () => {
       "Esperando humanoanel laranja",
       "Com humanoanel verde",
       "Com a IAsem anel",
-      "Incidenteanel laranja tracejado",
       "Prazo em riscoanel vermelho pulsando",
     ]);
     expect(screen.getByText("Esc ou “Todos os grupos” volta.")).toBeInTheDocument();
