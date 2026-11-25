@@ -1,26 +1,16 @@
 module Api
   # Base das rotas do analista humano. Autentica pelo token e restringe às marcas que ele atende.
   class AnalystController < ApplicationController
-    before_action :authenticate_analyst
+    include TokenAuthentication
+    include JsonBody
+
+    authenticate_roles "analyst", forbidden: "apenas analistas"
 
     rescue_from Ticket::InvalidTransition, with: -> { render status: :conflict, json: { error: "transição inválida" } }
 
     private
 
-    attr_reader :current_analyst
-
-    def authenticate_analyst
-      token = request.headers["Authorization"].to_s[/\ABearer (.+)\z/, 1]
-      user = User.find_by_token(token)
-
-      if user.nil?
-        render status: :unauthorized, json: { error: "token inválido" }
-      elsif !user.analyst?
-        render status: :forbidden, json: { error: "apenas analistas" }
-      else
-        @current_analyst = user
-      end
-    end
+    def current_analyst = current_user
 
     # Ticket de uma marca que o analista atende. Os de outras marcas respondem 404, sem dizer que existem.
     def find_ticket
@@ -48,13 +38,6 @@ module Api
         resolution_code: ticket.resolution_code,
         handoff_brief: ticket.handoff_brief
       }
-    end
-
-    def parse_json(body)
-      parsed = JSON.parse(body.presence || "{}")
-      parsed.is_a?(Hash) ? parsed : {}
-    rescue JSON::ParserError
-      {}
     end
   end
 end
