@@ -26,7 +26,7 @@ quebrado por um `*/` num comentário do CSS, foi corrigido. O `web-test` agora t
   P1–P4, `sidekiq-cron`, agente mudo em ≤ 40 s), `0005` (equipes, regras, auditoria), `0006` (memória), `0007`
   (interface), `0008` (observabilidade e LLM) e `0009` (Modo Incidente, "Por que a IA decidiu", resiliência,
   fechamento automático, tema claro com Painel, experimento enxuto).
-- Produto e design: `PRODUCT.md`. Especificações de fatia: `docs/specs/01` a `06`.
+- Arquivos de IA (`AGENTS.md`, `PRODUCT.md`, `.agents/`, `.claude/`) são só locais, fora do git (ADR 0001). Especificações de fatia: `docs/specs/01` a `06`.
 - Pesquisa: piloto (`docs/research/2026-11-16-piloto-de-carga.md`) e experimento oficial
   (`docs/research/2026-11-23-experimento-oficial.md`, rodadas em `docs/research/experimento-2026-11-23/`).
 - Roteiro da demo: `docs/demo/roteiro-resiliencia.md`. Brief do parceiro: `docs/TAPI_cloudwalk.pdf`.
