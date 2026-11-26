@@ -29,5 +29,22 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Local Codex state; repository skills live in .agents/ and are tracked
+# AI assistant files stay local and out of the repository
 .codex/
+.agents/
+.claude/
+.cursor/
+.windsurf/
+.gemini/
+.aider*
+.continue/
+.impeccable/
+AGENTS.md
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md
+PRODUCT.md
+DESIGN.md
+SKILL.md
+**/skills/**/SKILL.md
+.github/copilot-instructions.md

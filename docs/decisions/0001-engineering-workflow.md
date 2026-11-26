@@ -24,3 +24,9 @@ pode confirmar as próprias suposições. O repositório começou vazio e o prod
 - A revisão continua independente mesmo em um projeto solo.
 - Há um pequeno custo de manter o estado e os gates atualizados.
 - O primeiro push vazio para criar a base `main` é uma exceção operacional, sem conteúdo de projeto.
+
+## Atualização (2026-11-25)
+
+Por decisão do dono, os arquivos de assistentes de IA (`AGENTS.md`, `PRODUCT.md`, `.agents/` com as skills
+`$review-pr` e `$ship-change`, `.claude/` e afins) saem do repositório e passam a ser só locais, listados no
+`.gitignore`. O item 4 continua valendo na máquina do dono, mas o `AGENTS.md` deixa de ser versionado.
