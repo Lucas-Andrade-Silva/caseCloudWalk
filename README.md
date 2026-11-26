@@ -43,21 +43,22 @@ humanos com resumo e contexto. Ela também lembra o cliente entre contatos e aud
 
 ## Telas
 
-| Painel | Fila da analista |
+![Início: visão da operação em cards, com volume de tickets, mapa vivo, resolvidos pela IA, SLA e situação agora](docs/assets/inicio.png)
+<p align="center"><sub><b>Início</b> · a operação inteira em cards: volume, mapa vivo, resolvidos pela IA, SLA, tempo de solução e situação agora.</sub></p>
+
+| Fila da analista | Mapa vivo |
 |---|---|
-| ![Painel com tickets por dia, primeira resposta humana e canais](docs/assets/painel.png) | ![Fila da analista com brief da IA e memória do cliente](docs/assets/fila-analista.png) |
-| Números reais do banco, comparação com ontem, SLA e exportação CSV. | Pegar o próximo ticket, brief do handoff e histórico do cliente. |
+| ![Fila da analista com incidente aberto, conversa e brief do handoff](docs/assets/fila.png) | ![Mapa vivo com grupos de tickets em órbita e o incidente no centro](docs/assets/mapa-vivo.png) |
+| Pegar o próximo ticket, conversa, brief do handoff e memória do cliente; o incidente aberto aparece no topo com "Responder a todos". | Grupos de tickets em órbita; o incidente fica no centro e o anel vermelho marca prazo em risco. |
 
-| Mapa vivo |
-|---|
-| ![Mapa vivo com um incidente agrupado em laranja](docs/assets/mapa-vivo.png) |
-| Tickets de um incidente formam um grupo laranja; pulso vermelho indica prazo perto de vencer. |
-
-> As capturas vêm do vídeo de demonstração e podem estar algumas iterações atrás da
-> interface atual.
+| Painel | Filas e regras |
+|---|---|
+| ![Painel com abertos, criados e resolvidos hoje, tickets por dia e canais](docs/assets/painel.png) | ![Operação de filas e equipes por marca](docs/assets/operacao.png) |
+| Números reais do banco, comparação com ontem, primeira resposta humana, canais e exportação CSV. | Filas por marca, equipes e regras versionadas com simulação antes de publicar. |
 
 | Rota | O que mostra |
 |---|---|
+| `#/inicio` | Visão geral em cards, com atalhos para cada área. |
 | `#/painel` | Abertos agora, criados e resolvidos hoje contra ontem, tickets por dia, primeira resposta humana, SLA, quem resolveu (IA ou humano) e canais. |
 | `#/fila` | A analista pega o ticket mais urgente, conversa e fecha com resolução. Abas **Contexto** e **Por que a IA decidiu**. |
 | `#/mapa` | Tickets abertos agrupados, entrando e saindo em tempo real. |
