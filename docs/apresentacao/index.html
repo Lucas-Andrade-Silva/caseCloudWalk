@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>helpdesk · Lucas Andrade · case CloudWalk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./deck.css?v=6" />
+</head>
+<body>
+<div id="bar"></div>
+<main id="stage">
+
+<!-- ============ CAPA ============ -->
+<section class="s t-dark cover">
+  <header class="cv-top up">
+    <span class="lockup cw"><img src="./img/cloudwalk-symbol.png" alt="" />CloudWalk</span>
+    <span class="x">×</span>
+    <span class="lockup inteli">Inteli<em>Academy</em></span>
+    <span class="sp"></span>
+    <span class="wordmark sm">helpdesk<i class="caret"></i></span>
+  </header>
+  <h1 class="cv-h up d1">Help Desk Integrado<br><span class="g">a Agentes de IA</span></h1>
+  <div class="cv-who up d3"><b>Lucas Andrade</b><span>case CloudWalk</span></div>
+  <svg class="orbit2" viewBox="-500 -500 1000 1000" aria-hidden="true">
+    <defs><radialGradient id="glow"><stop offset="0" stop-color="#22c38e" stop-opacity=".35"/><stop offset="1" stop-color="#22c38e" stop-opacity="0"/></radialGradient></defs>
+    <circle r="480" fill="url(#glow)" />
+    <circle r="150" class="ring" /><circle r="260" class="ring" /><circle r="370" class="ring" /><circle r="480" class="ring faint" />
+    <g class="spin s1"><circle cx="150" r="16" class="b ai" /><circle cx="-106" cy="-106" r="11" class="b ai" /></g>
+    <g class="spin s2"><circle cx="260" r="22" class="b wait" /><circle cx="-184" cy="184" r="15" class="b human" /><circle cx="0" cy="-260" r="12" class="b ai" /></g>
+    <g class="spin s3"><circle cx="370" r="30" class="b inc" /><circle cx="-370" r="17" class="b human" /><circle cx="0" cy="370" r="13" class="b ai" /><circle cx="262" cy="-262" r="10" class="b ai" /></g>
+    <g class="spin s4"><circle cx="480" r="14" class="b human" /><circle cx="-340" cy="340" r="20" class="b wait" /></g>
+    <circle r="62" class="core2" />
+  </svg>
+</section>
+
+<!-- ============ PARTE 1 · SOLUÇÃO ============ -->
+<section class="s t-green divider">
+  <div class="num up">01</div>
+  <h2 class="up d1">A solução, rodando de verdade.</h2>
+  <p class="up d2">Gravei a plataforma agora: cliente, analista, incidente, mapa e operação.</p>
+</section>
+
+<section class="s t-dark split" data-ch="Solução · cliente">
+  <div class="col-l">
+    <h2 class="up d1">A cliente fala com a IA. Quando precisa, já sabe que vem alguém.</h2>
+    <ol class="steps up d2">
+      <li><b>Pergunta simples</b><span>a IA responde na hora.</span></li>
+      <li><b>"A maquininha travou"</b><span>com CPF no texto.</span></li>
+      <li><b>O agente pede uma pessoa</b><span>e a cliente vê "Aguardando uma pessoa da equipe".</span></li>
+    </ol>
+    <div class="chat up d3">
+      <div class="msg me">a maquininha travou de novo, CPF <span class="mask">[CPF]</span></div>
+      <div class="msg ai"><small>Agente de IA</small>Vou te passar para um especialista. Ele já recebe o histórico da conversa.</div>
+    </div>
+  </div>
+  <div class="frame tall up d1"><video data-src="./video/01-cliente.webm" muted playsinline loop></video></div>
+</section>
+
+<section class="s t-dark full" data-ch="Solução · analista">
+  <div class="frame wide up"><video data-src="./video/02-analista.webm" muted playsinline loop></video></div>
+  <div class="over-l up d2">
+    <h2>O analista recebe o caso pronto.</h2>
+    <p>Sem reler conversa: resumo, memória da cliente e o porquê de cada decisão.</p>
+  </div>
+  <div class="card brief up d3">
+    <div class="card-h"><i class="spark"></i>Brief do handoff <span class="prio p2">P2 · Alta</span></div>
+    <p>Cliente relata que a maquininha travou novamente e pede solução; o histórico já foi enviado.</p>
+    <div class="tags"><span>categoria: maquininha</span><span>frustração: média</span></div>
+    <div class="card-f">Gerado por IA · Groq</div>
+  </div>
+  <div class="card why up d4">
+    <div class="card-h">Por que a IA decidiu</div>
+    <ul class="trail"><li><b>Texto que a LLM recebeu</b> · CPF vira [CPF]</li><li><b class="llm">LLM classificou</b> · intenção e urgência</li><li><b>Regra que casou</b> · fila e versão</li></ul>
+  </div>
+</section>
+
+<section class="s t-dark stack" data-ch="Solução · Modo Incidente">
+  <div class="banner up"><span class="tri">!</span><span class="inc-k">Incidente · InfinitePay · dispositivo</span><b>Pico de dispositivo na InfinitePay</b><span class="sp"></span><span class="muted">6 tickets agora</span><button class="btn-inc">Responder a todos</button></div>
+  <div class="grid-inc">
+    <div class="up d1">
+      <h2>Seis clientes, a mesma reclamação. Um incidente.</h2>
+      <p class="lede">Cinco tickets parecidos em dez minutos, na mesma marca, abrem o incidente. A LLM escreve o título e o rascunho; o analista responde a todos de uma vez.</p>
+      <div class="bigpair"><div><b class="mono">5</b><span>tickets em 10 min</span></div><div><b class="mono">1</b><span>resposta para todos</span></div></div>
+    </div>
+    <div class="frame up d2"><video data-src="./video/03-incidente.webm" data-start="7" muted playsinline loop></video></div>
+  </div>
+</section>
+
+<section class="s t-ink map" data-ch="Solução · mapa vivo">
+  <div class="frame up"><video data-src="./video/04-mapa.webm?v=2" muted playsinline loop></video></div>
+  <aside class="legend up d2">
+    <h2>A operação viva, em órbita.</h2>
+  </aside>
+</section>
+
+<section class="s t-dark duo" data-ch="Solução · operação">
+  <h2 class="up">A operação enxerga tudo e muda as regras sem desenvolvedor.</h2>
+  <div class="duo-g">
+    <figure class="up d1"><div class="frame"><video data-src="./video/05-home.webm" muted playsinline loop></video></div><figcaption><b>Início</b> volume, mapa, SLA e situação agora</figcaption></figure>
+    <figure class="up d2"><div class="frame"><video data-src="./video/06-operacao.webm" data-start="2" muted playsinline loop></video></div><figcaption><b>Filas e regras</b> versionadas, com dry-run antes de publicar</figcaption></figure>
+  </div>
+  <div class="card situ up d3">
+    <div class="card-h">Situação agora <span class="inc-chip">1 alerta</span></div>
+    <div class="situ-b"><b class="warn">Atenção</b><div><span class="mono">1</span>incidente</div><div><span class="mono">0</span>prazo em risco</div><div><span class="mono">7</span>últimas horas</div></div>
+  </div>
+</section>
+
+<!-- ============ PARTE 2 · EXPERIMENTOS ============ -->
+<section class="s t-bone divider">
+  <div class="num up">02</div>
+  <h2 class="up d1">E aguenta? Medi.</h2>
+  <p class="up d2">9 rodadas em modo de produção, com carga e falhas injetadas de propósito.</p>
+</section>
+
+<section class="s t-bone hyp" data-ch="Experimentos · método">
+  <div class="hyp-q up">
+    <span class="tag-b">Hipótese, escrita antes de rodar</span>
+    <h2>Com pico, reentregas fora de ordem, Kafka parado e agente lento, nada se perde, nada duplica e o p99 fica abaixo de 1 s a 10×.</h2>
+  </div>
+  <div class="sc">
+    <div class="sc-c up d1"><span class="sc-n">S1</span><h3>Rampa</h3><p>1× → 10× → 50× → 1×</p><div class="ramp"><i style="height:10%"></i><i style="height:40%"></i><i style="height:100%"></i><i style="height:10%"></i></div></div>
+    <div class="sc-c up d2"><span class="sc-n">S2</span><h3>Kafka parado</h3><p>10× com <span class="mono">docker pause</span> por 60 s</p><div class="kpause"><i></i><i></i><i class="off"></i><i></i><i></i></div></div>
+    <div class="sc-c up d3"><span class="sc-n">S3</span><h3>Agente em caos</h3><p>10×, latência de 0,2 a 2 s e 5% de silêncio</p><div class="chaos"><i></i><i></i><i class="x"></i><i></i><i></i><i></i></div></div>
+  </div>
+  <p class="foot-note up d4">k6 com taxa fixa · 1× = 5 mensagens/s · 30% reenviadas fora de ordem · 3 rodadas por cenário</p>
+</section>
+
+<section class="s t-bone load" data-ch="Experimentos · carga">
+  <div class="load-l up">
+    <h2>Arraste a carga.</h2>
+    <p class="lede">Números medidos no cenário S1 (pior e melhor das 3 rodadas).</p>
+    <div class="seg" role="tablist" id="loadseg">
+      <button data-l="0" aria-selected="true">1×</button><button data-l="1">10×</button><button data-l="2">~37×</button>
+    </div>
+    <input type="range" min="0" max="2" step="1" value="0" id="loadr" aria-label="Carga" />
+    <p class="note" id="loadnote"></p>
+  </div>
+  <div class="load-r up d1">
+    <div class="card light situ2"><div class="card-h">Situação</div><b id="ls-state">Estável</b></div>
+    <div class="kv"><span>Enviado</span><b class="mono" id="lv-rate"></b></div>
+    <div class="kv"><span>ACK do webhook p99</span><b class="mono" id="lv-ack"></b></div>
+    <div class="kv"><span>Ponta a ponta p50</span><b class="mono" id="lv-p50"></b></div>
+    <div class="kv big"><span>Ponta a ponta p99</span><b class="mono" id="lv-p99"></b></div>
+    <div class="meter"><i id="lv-bar"></i><span class="goal">meta 1 s</span></div>
+  </div>
+</section>
+
+<section class="s t-bone inv" data-ch="Experimentos · invariantes">
+  <h2 class="up">Nas 9 rodadas, os quatro invariantes valeram.</h2>
+  <div class="zeros">
+    <div class="up d1"><b class="mono">0</b><span>mensagens perdidas</span></div>
+    <div class="up d2"><b class="mono">0</b><span>duplicadas</span></div>
+    <div class="up d3"><b class="mono">0</b><span>fora de ordem</span></div>
+    <div class="up d4"><b class="mono">0</b><span>conversas órfãs</span></div>
+  </div>
+  <div class="kafka up d5">
+    <div><b>Kafka parado 60 s a 10×</b><p>O webhook seguiu aceitando tudo (ACK p99 ≤ 141 ms). O outbox esvaziou <b class="mono">53 a 59 s</b> depois da volta. Meta: menos de 5 min.</p></div>
+    <div><b>Agente em caos</b><p>Um consumidor só não acompanha 10×: cerca de 62% foram escalados para humanos, em vez de ficarem sem resposta.</p></div>
+  </div>
+</section>
+
+<!-- ============ PARTE 3 · ARQUITETURA ============ -->
+<section class="s t-night divider">
+  <div class="num up">03</div>
+  <h2 class="up d1">Por que aguenta: a arquitetura.</h2>
+  <p class="up d2">O Postgres é a fonte da verdade. Qualquer outra peça pode cair.</p>
+</section>
+
+<section class="s t-night arch" data-ch="Arquitetura · o caminho">
+  <div class="arch-top">
+    <h2 class="up">Clique em cada peça. Depois, derrube o Kafka.</h2>
+    <button class="kill up d1" id="kill" aria-pressed="false"><span class="sw"></span><span id="killtxt">Derrubar o Kafka</span></button>
+  </div>
+  <div class="compose up d1">
+    <span class="compose-l">docker compose up · tudo liga com um comando</span>
+    <svg class="wires" viewBox="0 0 1700 520" aria-hidden="true">
+      <path d="M 115 160 H 1515" />
+      <path class="back" d="M 315 196 H 1515" />
+      <path class="sub" d="M 315 230 L 240 450" /><path class="sub" d="M 555 230 L 480 450" /><path class="sub" d="M 1350 230 V 450" />
+    </svg>
+    <div class="nodes" id="nodes">
+      <button class="nd ch" style="left:0" data-k="0"><i>→</i><b>Canais</b><span>app, WhatsApp, e-mail</span></button>
+      <button class="nd" style="left:170px" data-k="1"><i>1</i><b>API Rails</b><span>HMAC · dedupe</span></button>
+      <button class="nd core" style="left:410px" data-k="2"><i>2</i><b>Postgres</b><span>outbox <em id="outbox">0</em></span></button>
+      <button class="nd" style="left:650px" data-k="3"><i>3</i><b>Relay</b><span>at-least-once</span></button>
+      <button class="nd" style="left:890px" data-k="4"><i>4</i><b>Broker</b><span>sem estado · DLQ</span></button>
+      <button class="nd kf" style="left:1130px" data-k="5"><i>5</i><b>Kafka</b><span>absorve picos</span></button>
+      <button class="nd" style="left:1370px" data-k="6"><i>6</i><b>Agente de IA</b><span>mock com caos</span></button>
+      <button class="nd low" style="left:90px; top:360px" data-k="7"><i>7</i><b>Sidekiq + Redis</b><span>40 s · 30 min</span></button>
+      <button class="nd low" style="left:330px; top:360px" data-k="8"><i>8</i><b>React</b><span>cliente, analista, mapa</span></button>
+      <button class="nd low obs" style="left:1130px; top:360px" data-k="9"><i>9</i><b>Observabilidade</b><span>OTel · Prometheus · Grafana · Jaeger</span></button>
+    </div>
+    <div id="dots"></div>
+  </div>
+  <div class="explain up d2"><b id="ex-t"></b><p id="ex-p"></p></div>
+</section>
+
+<section class="s t-night ai2" data-ch="Arquitetura · IA">
+  <div class="ai-top">
+    <h2 class="up">A LLM ajuda a decidir.<br><span>Mas o ticket nunca espera por ela.</span></h2>
+    <button class="kill up d1" id="llmkill" aria-pressed="false"><span class="sw"></span><span id="llmtxt">Derrubar a LLM</span></button>
+  </div>
+  <div class="track up d1" id="track">
+    <div class="rail"><i class="tk"></i></div>
+    <div class="st det" style="left:0%"><span class="tg">regra</span><b>Limpa os dados</b><p>CPF e cartão saem antes de qualquer chamada.</p></div>
+    <div class="st llm" style="left:25%"><span class="tg">LLM</span><b>Extrai fatos</b><p>Intenção, urgência, sentimento. Saída validada.</p><em class="fb">regra assume: palavras-chave</em></div>
+    <div class="st det" style="left:50%"><span class="tg">regra</span><b>Fila e prioridade</b><p>Regras versionadas, P1 a P4.</p></div>
+    <div class="st det" style="left:75%"><span class="tg">regra</span><b>Escala</b><p>Mudo por 40 s? Vai para um humano.</p></div>
+    <div class="st llm end" style="left:100%"><span class="tg">LLM</span><b>Brief</b><p>Resumo pronto para o analista.</p><em class="fb">regra assume: brief mínimo</em></div>
+  </div>
+  <div class="ai-bot up d2">
+    <div class="stat"><b class="mono">2 s</b><span>de timeout por chamada à LLM</span></div>
+    <div class="stat"><b class="mono">disjuntor</b><span>com o Groq fora, para de esperar e segue nas regras</span></div>
+    <div class="stat why"><span>Cada decisão fica registrada na aba</span><b>"Por que a IA decidiu"</b></div>
+  </div>
+</section>
+
+ <section class="s t-dark next2" data-ch="Próximos passos">
+  <h2 class="up">Cada próximo passo nasce de um número que eu medi.</h2>
+  <div class="ev">
+    <div class="evr up d1"><div class="ev-l"><b class="mono warn">62%</b><span>escalados no caos: um consumidor só não acompanha 10×</span></div><i class="arr"></i><div class="ev-r"><span class="when">antes de produção</span><b>Paralelizar o agente</b><p>Partições no Kafka e vários consumidores.</p></div></div>
+    <div class="evr up d2"><div class="ev-l"><b class="mono info">brand_id</b><span>isolamento das marcas hoje vive na aplicação</span></div><i class="arr"></i><div class="ev-r"><span class="when">segurança</span><b>Row-Level Security</b><p>InfinitePay e JIM separadas também no Postgres.</p></div></div>
+    <div class="evr up d3"><div class="ev-l"><b class="mono acc">dry-run</b><span>regras já são versionadas, mas editadas em formulário</span></div><i class="arr"></i><div class="ev-r"><span class="when">operação</span><b>Regras em linguagem natural</b><p>A operação descreve; revisa a regra gerada antes de publicar.</p></div></div>
+    <div class="evr up d4"><div class="ev-l"><div class="msg ai mini"><small>Agente de IA</small>Aguardando uma pessoa da equipe.</div></div><i class="arr"></i><div class="ev-r"><span class="when">cliente</span><b>Estimativa de espera</b><div class="msg ai mini on"><small>Agente de IA</small>Uma pessoa te atende em ~4 min.</div></div></div>
+  </div>
+</section>
+
+<section class="s t-green end">
+  <h2 class="up">Obrigado.</h2>
+  <p class="up d1">Aponte a câmera ou clique.</p>
+  <div class="qrs">
+    <a class="qr up d2" href="https://www.linkedin.com/in/lucas-andrade-sva" target="_blank" rel="noopener"><img src="./img/qr-linkedin.svg" alt="QR code do LinkedIn" /><b>LinkedIn</b><span>in/lucas-andrade-sva</span></a>
+    <a class="qr up d3" href="https://github.com/Lucas-Andrade-Silva/caseCloudWalk" target="_blank" rel="noopener"><img src="./img/qr-github.svg" alt="QR code do GitHub" /><b>GitHub</b><span>Lucas-Andrade-Silva/caseCloudWalk</span></a>
+  </div>
+  <span class="wordmark dark up d4">helpdesk<i class="caret"></i></span>
+</section>
+
+</main>
+<footer id="foot"><span id="ch"></span><span id="num" class="mono"></span></footer>
+<div id="nav"><button id="prev" aria-label="Anterior">←</button><button id="next" aria-label="Próximo">→</button></div>
+<script src="./deck.js?v=2"></script>
+</body>
+</html>
